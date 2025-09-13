@@ -4,7 +4,17 @@ import styles from "./css.js";
 import { makeErrorMsg } from "./api";
 import windowManager from "./windowManager";
 import i18n from "./i18n";
+import codexMainWindow from "./codexMainWindow";
 // <nowiki>
+
+// Optionally prewarm Codex/Vue bundles to reduce first-open latency (mirrors scriptManager)
+try {
+	if (window && (window.RATER_PREWARM_CODEX || window.SM_PREWARM_CODEX)) {
+		if (mw && mw.loader && typeof mw.loader.load === "function") {
+			mw.loader.load(["vue", "@wikimedia/codex"]);
+		}
+	}
+} catch (e) { void 0; }
 
 function startApp() {
 	let stylesheet;
@@ -20,8 +30,12 @@ function startApp() {
 		}
 		// Add css class to body to enable background scrolling
 		document.getElementsByTagName("body")[0].classList.add("rater-mainWindow-open");
-		// Open the window
-		windowManager.openWindow("main", data)
+		// Open the window (switchable to Codex via flag)
+		(
+			(window && window.RATER_USE_CODEX)
+				? codexMainWindow.open(data)
+				: windowManager.openWindow("main", data)
+		)
 			.closed.then( result => {
 				// Disable/remove the css styles, so as to not interfere with other scripts/content/OOUI windows
 				if (stylesheet) { stylesheet.disabled = true; }
