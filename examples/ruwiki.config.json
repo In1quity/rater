@@ -1,0 +1,11 @@
+{
+	"ores": {
+		"wiki": "ruwiki"
+	},
+	"bannerDefaults": {
+		"classes": [
+			"I", "II", "III", "IV", "ДС", "ХС", "ИС"
+		]
+	}
+}
+
