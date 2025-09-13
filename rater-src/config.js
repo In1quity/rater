@@ -10,6 +10,9 @@ var config = {
 		advert:  ` ([[WP:RATER#${version}|Rater]])`,
 		version: version
 	},
+	ores: {
+		wiki: "enwiki"
+	},
 	// Default preferences, if user subpage raterPrefs.json does not exist
 	defaultPrefs: {
 		"autostart": false,
@@ -236,5 +239,48 @@ var config = {
 	}
 };
 
+/**
+ * Deep-merge helper for external config overrides
+ */
+var deepMerge = function(target, source) {
+	if (!source || typeof source !== "object") { return target; }
+	Object.keys(source).forEach(function(key) {
+		var sourceVal = source[key];
+		var targetVal = target[key];
+		if (Array.isArray(sourceVal)) {
+			// Arrays: replace entirely
+			target[key] = sourceVal.slice();
+		} else if (sourceVal && typeof sourceVal === "object") {
+			target[key] = deepMerge(targetVal && typeof targetVal === "object" ? targetVal : {}, sourceVal);
+		} else {
+			target[key] = sourceVal;
+		}
+	});
+	return target;
+};
+
+/**
+ * Load external per-wiki config from either window.RATER_CONFIG (object) or
+ * window.RATER_CONFIG_URL (JSON URL). Returns a Promise.
+ */
+var loadExternalConfig = function() {
+	try {
+		if (window && window.RATER_CONFIG && typeof window.RATER_CONFIG === "object") {
+			deepMerge(config, window.RATER_CONFIG);
+			return $.Deferred().resolve().promise();
+		}
+		if (window && window.RATER_CONFIG_URL && typeof window.RATER_CONFIG_URL === "string") {
+			return $.get(window.RATER_CONFIG_URL).then(function(data) {
+				try {
+					var obj = (typeof data === "string") ? JSON.parse(data) : data;
+					if (obj && typeof obj === "object") { deepMerge(config, obj); }
+				} catch(_) { /* ignore parse error */ }
+			});
+		}
+	} catch(_) { /* ignore */ }
+	return $.Deferred().resolve().promise();
+};
+
 export default config;
+export { loadExternalConfig };
 // </nowiki>

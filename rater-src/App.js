@@ -4,6 +4,7 @@ import styles from "./css.js";
 import { makeErrorMsg } from "./api";
 import windowManager from "./windowManager";
 import i18n from "./i18n";
+import { loadExternalConfig } from "./config";
 // <nowiki>
 
 function startApp() {
@@ -79,7 +80,10 @@ function startApp() {
 
 // Ensure i18n is loaded before constructing UI so initial labels are localized
 try {
-	i18n.load().always(startApp);
+	// Ensure external per-wiki config (if any) is loaded before i18n/UI
+	$.when(loadExternalConfig()).always(function() {
+		i18n.load().always(startApp);
+	});
 } catch (e) {
 	startApp();
 }
