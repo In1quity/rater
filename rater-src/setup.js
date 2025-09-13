@@ -1,4 +1,5 @@
 import config from "./config";
+import i18n from "./i18n";
 import API from "./api";
 import { parseTemplates, getWithRedirectTo } from "./Template";
 import {getBannerNames} from "./getBanners";
@@ -166,16 +167,24 @@ var setupRater = function(clickEvent) {
 			}
 			return API.getORES(latestRevId)
 				.then(function(result) {
-					var data = result.enwiki.scores[latestRevId].articlequality;
+					var wiki = (config && config.ores && config.ores.wiki) || "enwiki";
+					var root = result && (result[wiki] || result[Object.keys(result)[0]]);
+					if (!root || !root.scores || !root.scores[latestRevId] || !root.scores[latestRevId].articlequality) {
+						return $.Deferred().reject("ok-but-empty");
+					}
+					var data = root.scores[latestRevId].articlequality;
 					if ( data.error ) {
 						return $.Deferred().reject(data.error.type, data.error.message);
 					}
 					const prediction = data.score.prediction;
 					const probabilities = data.score.probability;
-					if (prediction === "FA" || prediction === "GA") {
+					const tiers = (config && config.ores && Array.isArray(config.ores.topTierClasses)) ? config.ores.topTierClasses : ["FA","GA"];
+					const baseline = (config && config.ores && config.ores.baselineClass) || "B";
+					if (tiers.includes(prediction)) {
+						const sum = tiers.reduce((acc, k) => acc + (probabilities[k] || 0), 0) + (probabilities[baseline] || 0);
 						return {
-							prediction: "B or higher",
-							probability: ((probabilities.FA + probabilities.GA + probabilities.B)*100).toFixed(1)+"%"
+							prediction: baseline + " " + i18n.t("ores-or-higher"),
+							probability: (sum * 100).toFixed(1) + "%"
 						};
 					}
 					return {

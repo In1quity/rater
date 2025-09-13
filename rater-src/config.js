@@ -11,7 +11,11 @@ var config = {
 		version: version
 	},
 	ores: {
-		wiki: "enwiki"
+		wiki: "enwiki",
+		// Top-tier classes to aggregate with baselineClass in ORES summary
+		topTierClasses: ["FA", "GA"],
+		// Baseline class for ORES aggregation label
+		baselineClass: "B"
 	},
 	// Default preferences, if user subpage raterPrefs.json does not exist
 	defaultPrefs: {
