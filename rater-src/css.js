@@ -1,7 +1,8 @@
 // <nowiki>
 
 // Attribution: Diff styles based on <https://en.wikipedia.org/wiki/Wikipedia:AutoWikiBrowser/style.css>
-const styles = `table.diff, td.diff-otitle, td.diff-ntitle { table-layout: auto !important;; }
+const styles =
+	`table.diff, td.diff-otitle, td.diff-ntitle { table-layout: auto !important;; }
 td.diff-otitle, td.diff-ntitle { text-align: center; }
 td.diff-marker { text-align: right; font-weight: bold; font-size: 1.25em; }
 td.diff-lineno { font-weight: bold; }
@@ -29,9 +30,8 @@ table.diff td div {
         instead of text overflowing or widening */
     overflow: auto;
 }` +
-
-// Override OOUI window manager preventing background scrolling/interaction
-`html body.rater-mainWindow-open {
+	// Override OOUI window manager preventing background scrolling/interaction
+	`html body.rater-mainWindow-open {
 	position: unset;
 	overflow: unset;
 }
@@ -39,14 +39,14 @@ html body.rater-mainWindow-open .oo-ui-windowManager-modal > .oo-ui-dialog.oo-ui
     position: static;
     padding: 0;
 }` +
-// Increase z-index, to be above skin menus etc; smooth transition for dragging (transform:translate)
-`html body.rater-mainWindow-open .oo-ui-dialog.oo-ui-window-active > div {
+	// Increase z-index, to be above skin menus etc; smooth transition for dragging (transform:translate)
+	`html body.rater-mainWindow-open .oo-ui-dialog.oo-ui-window-active > div {
     z-index: 110;
     transition: all 0.25s ease-out 0s, transform 0s !important
 }
-` + 
-// Ensure close dialog is visible
-`html body.rater-mainWindow-open #mw-teleport-target {
+` +
+	// Ensure close dialog is visible
+	`html body.rater-mainWindow-open #mw-teleport-target {
     top: 0;
     bottom: 0;
     left: 0;

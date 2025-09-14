@@ -1,123 +1,134 @@
-import BannerWidget from "./Components/BannerWidget";
-import BannerListWidget from "./Components/BannerListWidget";
-import appConfig from "../config";
-import API, { makeErrorMsg } from "../api";
-import PrefsFormWidget from "./Components/PrefsFormWidget";
-import { setPrefs as ApiSetPrefs } from "../prefs";
-import { parseTemplates } from "../Template";
-import TopBarWidget from "./Components/TopBarWidget";
-import { filterAndMap, uniqueArray } from "../util";
-import * as cache from "../cache";
+import BannerWidget from './Components/BannerWidget';
+import BannerListWidget from './Components/BannerListWidget';
+import appConfig from '../config';
+import API, { makeErrorMsg } from '../api';
+import PrefsFormWidget from './Components/PrefsFormWidget';
+import { setPrefs as ApiSetPrefs } from '../prefs';
+import { parseTemplates } from '../Template';
+import TopBarWidget from './Components/TopBarWidget';
+import { filterAndMap, uniqueArray } from '../util';
+import * as cache from '../cache';
 // <nowiki>
 
-function MainWindow( config ) {
-	MainWindow.super.call( this, config );
+function MainWindow(config) {
+	MainWindow.super.call(this, config);
 }
-OO.inheritClass( MainWindow, OO.ui.ProcessDialog );
+OO.inheritClass(MainWindow, OO.ui.ProcessDialog);
 
-MainWindow.static.name = "main";
-MainWindow.static.title = $("<span>").css({"font-weight":"normal"}).append(
-	$("<a>").css({"font-weight": "bold"}).attr({"href": mw.util.getUrl("WP:RATER"), "target": "_blank"}).text("Rater"),
-	" (",
-	$("<a>").attr({"href": mw.util.getUrl("WT:RATER"), "target": "_blank"}).text("talk"),
-	") ",
-	$("<span>").css({"font-size":"90%"}).text("v"+appConfig.script.version)
-);
-MainWindow.static.size = "large";
+MainWindow.static.name = 'main';
+MainWindow.static.title = $('<span>')
+	.css({ 'font-weight': 'normal' })
+	.append(
+		$('<a>')
+			.css({ 'font-weight': 'bold' })
+			.attr({ href: mw.util.getUrl('WP:RATER'), target: '_blank' })
+			.text('Rater'),
+		' (',
+		$('<a>')
+			.attr({ href: mw.util.getUrl('WT:RATER'), target: '_blank' })
+			.text('talk'),
+		') ',
+		$('<span>')
+			.css({ 'font-size': '90%' })
+			.text('v' + appConfig.script.version),
+	);
+MainWindow.static.size = 'large';
 MainWindow.static.actions = [
 	// Primary (top right):
 	{
-		label: "X", // not using an icon since color becomes inverted, i.e. white on light-grey
-		title: "Close (and discard any changes)",
-		flags: "primary",
-		modes: ["edit", "diff", "preview"] // available when current mode isn't "prefs"
+		label: 'X', // not using an icon since color becomes inverted, i.e. white on light-grey
+		title: 'Close (and discard any changes)',
+		flags: 'primary',
+		modes: ['edit', 'diff', 'preview'], // available when current mode isn't "prefs"
 	},
 	// Safe (top left)
 	{
-		action: "showPrefs",
-		flags: "safe",
-		icon: "settings",
-		title: "Preferences",
-		modes: ["edit", "diff", "preview"] // available when current mode isn't "prefs"
+		action: 'showPrefs',
+		flags: 'safe',
+		icon: 'settings',
+		title: 'Preferences',
+		modes: ['edit', 'diff', 'preview'], // available when current mode isn't "prefs"
 	},
 	// Others (bottom)
 	{
-		action: "save",
-		accessKey: "s",
+		action: 'save',
+		accessKey: 's',
 		label: new OO.ui.HtmlSnippet("<span style='padding:0 1em;'>Save</span>"),
-		flags: ["primary", "progressive"],
-		modes: ["edit", "diff", "preview"] // available when current mode isn't "prefs"
+		flags: ['primary', 'progressive'],
+		modes: ['edit', 'diff', 'preview'], // available when current mode isn't "prefs"
 	},
 	{
-		action: "preview",
-		accessKey: "p",
-		label: "Show preview",
-		modes: ["edit", "diff"] // available when current mode isn't "preview" or "prefs"
+		action: 'preview',
+		accessKey: 'p',
+		label: 'Show preview',
+		modes: ['edit', 'diff'], // available when current mode isn't "preview" or "prefs"
 	},
 	{
-		action: "changes",
-		accessKey: "v",
-		label: "Show changes",
-		modes: ["edit", "preview"] // available when current mode isn't "diff" or "prefs"
+		action: 'changes',
+		accessKey: 'v',
+		label: 'Show changes',
+		modes: ['edit', 'preview'], // available when current mode isn't "diff" or "prefs"
 	},
 	{
-		action: "back",
-		label: "Back",
-		modes: ["diff", "preview"] // available when current mode is "diff" or "prefs"
+		action: 'back',
+		label: 'Back',
+		modes: ['diff', 'preview'], // available when current mode is "diff" or "prefs"
 	},
-	
+
 	// "prefs" mode only
 	{
-		action: "savePrefs",
-		label: "Update",
-		flags: ["primary", "progressive"],
-		modes: "prefs" 
+		action: 'savePrefs',
+		label: 'Update',
+		flags: ['primary', 'progressive'],
+		modes: 'prefs',
 	},
 	{
-		action: "closePrefs",
-		label: "Cancel",
-		flags: "safe",
-		modes: "prefs"
-	}
+		action: 'closePrefs',
+		label: 'Cancel',
+		flags: 'safe',
+		modes: 'prefs',
+	},
 ];
 
 // Customize the initialize() function: This is where to add content to the dialog body and set up event handlers.
 MainWindow.prototype.initialize = function () {
 	// Call the parent method.
-	MainWindow.super.prototype.initialize.call( this );
+	MainWindow.super.prototype.initialize.call(this);
 
 	/* --- PREFS --- */
 	this.preferences = appConfig.defaultPrefs;
-	
+
 	/* --- TOP BAR --- */
 	this.topBar = new TopBarWidget({
-		$overlay: this.$overlay
-	} );
-	this.$head.css({"height":"73px"}).append(this.topBar.$element);
+		$overlay: this.$overlay,
+	});
+	this.$head.css({ height: '73px' }).append(this.topBar.$element);
 
 	/* --- FOOTER --- */
 	this.oresLabel = new OO.ui.LabelWidget({
-		$element: $("<span style='float:right; padding: 10px; max-width: 50%; text-align: center;'>"),
-		label: $("<span>").append(
-			$("<a>")
-				.attr({"href":mw.util.getUrl("mw:ORES"), "target":"_blank"})
+		$element: $(
+			"<span style='float:right; padding: 10px; max-width: 50%; text-align: center;'>",
+		),
+		label: $('<span>').append(
+			$('<a>')
+				.attr({ href: mw.util.getUrl('mw:ORES'), target: '_blank' })
 				.append(
-					$("<img>")
-						.css({"vertical-align": "text-bottom;"})
-						.attr({
-							"src": "//upload.wikimedia.org/wikipedia/commons/thumb/5/51/Objective_Revision_Evaluation_Service_logo.svg/40px-Objective_Revision_Evaluation_Service_logo.svg.png",
-							"title": "Machine predicted quality from ORES",
-							"alt": "ORES logo",
-							"width": "20px",
-							"height": "20px"
-						})
+					$('<img>').css({ 'vertical-align': 'text-bottom;' }).attr({
+						src: '//upload.wikimedia.org/wikipedia/commons/thumb/5/51/Objective_Revision_Evaluation_Service_logo.svg/40px-Objective_Revision_Evaluation_Service_logo.svg.png',
+						title: 'Machine predicted quality from ORES',
+						alt: 'ORES logo',
+						width: '20px',
+						height: '20px',
+					}),
 				),
-			" ",
-			$("<span class='oresPrediction'>")
-		)
+			' ',
+			$("<span class='oresPrediction'>"),
+		),
 	}).toggle(false);
 	this.pagetypeLabel = new OO.ui.LabelWidget({
-		$element: $("<span style='float:right; padding: 10px; max-width: 33.33%; text-align: center;'>")
+		$element: $(
+			"<span style='float:right; padding: 10px; max-width: 33.33%; text-align: center;'>",
+		),
 	}).toggle(false);
 	this.$foot.prepend(this.oresLabel.$element, this.pagetypeLabel.$element);
 
@@ -125,87 +136,87 @@ MainWindow.prototype.initialize = function () {
 
 	// Banners added dynamically upon opening, so just need a layout with an empty list
 	this.bannerList = new BannerListWidget({
-		preferences: this.preferences
+		preferences: this.preferences,
 	});
-	this.editLayout = new OO.ui.PanelLayout( {
+	this.editLayout = new OO.ui.PanelLayout({
 		padded: false,
 		expanded: false,
-		$content: this.bannerList.$element
-	} );
+		$content: this.bannerList.$element,
+	});
 
 	// Preferences, filled in with current prefs upon loading.
 	// TODO: Make this into a component, add fields and inputs
 	this.prefsForm = new PrefsFormWidget();
-	this.prefsLayout = new OO.ui.PanelLayout( {
+	this.prefsLayout = new OO.ui.PanelLayout({
 		padded: true,
 		expanded: false,
-		$content: this.prefsForm.$element
-	} );
+		$content: this.prefsForm.$element,
+	});
 
 	// Preview, Show changes
-	this.parsedContentContainer = new OO.ui.FieldsetLayout( {
-		label: "Preview"
-	} );
-	this.parsedContentWidget = new OO.ui.LabelWidget( {label: "",	$element:$("<div>")	});
+	this.parsedContentContainer = new OO.ui.FieldsetLayout({
+		label: 'Preview',
+	});
+	this.parsedContentWidget = new OO.ui.LabelWidget({
+		label: '',
+		$element: $('<div>'),
+	});
 	this.parsedContentContainer.addItems([
-		new OO.ui.FieldLayout(
-			this.parsedContentWidget,			
-			{ align: "top" }
-		)
+		new OO.ui.FieldLayout(this.parsedContentWidget, { align: 'top' }),
 	]);
-	this.parsedContentLayout = new OO.ui.PanelLayout( {
+	this.parsedContentLayout = new OO.ui.PanelLayout({
 		padded: true,
 		expanded: false,
-		$content: this.parsedContentContainer.$element
-	} );
+		$content: this.parsedContentContainer.$element,
+	});
 
-	this.contentArea = new OO.ui.StackLayout( {
-		items: [
-			this.editLayout,
-			this.prefsLayout,
-			this.parsedContentLayout
-		],
+	this.contentArea = new OO.ui.StackLayout({
+		items: [this.editLayout, this.prefsLayout, this.parsedContentLayout],
 		padded: false,
-		expanded: false
-	} );
+		expanded: false,
+	});
 
-	this.$body.css({"top":"73px"}).append(this.contentArea.$element);
+	this.$body.css({ top: '73px' }).append(this.contentArea.$element);
 
 	/* --- EVENT HANDLING --- */
 
 	this.topBar.connect(this, {
-		"searchSelect": "onSearchSelect",
-		"setClasses": "onSetClasses",
-		"setImportances": "onSetImportances",
-		"removeAll": "onRemoveAll",
-		"clearAll": "onClearAll"
+		searchSelect: 'onSearchSelect',
+		setClasses: 'onSetClasses',
+		setImportances: 'onSetImportances',
+		removeAll: 'onRemoveAll',
+		clearAll: 'onClearAll',
 	});
-	this.bannerList.connect(this, {"updatedSize": "onBannerListUpdateSize"});
+	this.bannerList.connect(this, { updatedSize: 'onBannerListUpdateSize' });
 
 	// Handle certain keyboard events. Requires something in the Rater window to be focused,
 	// so add a tabindex to the body and it's parent container.
-	this.$body.attr("tabindex", "999")
-		.parent().attr("tabindex", "999").keydown(function( event ) {
-			let scrollAmount;
-			switch(event.which) {
-			case 33: // page up
-				scrollAmount = this.$body.scrollTop() - this.$body.height()*0.9;
-				break;
-			case 34: // page down
-				scrollAmount = this.$body.scrollTop() + this.$body.height()*0.9;
-				break;
-			default:
-				return;
-			}
-			this.$body.scrollTop(scrollAmount);
-			event.preventDefault();
-		}.bind(this));
+	this.$body
+		.attr('tabindex', '999')
+		.parent()
+		.attr('tabindex', '999')
+		.keydown(
+			function (event) {
+				let scrollAmount;
+				switch (event.which) {
+					case 33: // page up
+						scrollAmount = this.$body.scrollTop() - this.$body.height() * 0.9;
+						break;
+					case 34: // page down
+						scrollAmount = this.$body.scrollTop() + this.$body.height() * 0.9;
+						break;
+					default:
+						return;
+				}
+				this.$body.scrollTop(scrollAmount);
+				event.preventDefault();
+			}.bind(this),
+		);
 
-	this.prefsForm.connect(this, {"resetCache": "onResetCache"});
-	
+	this.prefsForm.connect(this, { resetCache: 'onResetCache' });
 };
 
-MainWindow.prototype.onBannerListUpdateSize = function() {
+MainWindow.prototype.onBannerListUpdateSize = function () {
 	// Get the current scroll amount
 	const scrollAmount = this.$body.scrollTop();
 	// Update size (which resets the scroll to 0)
@@ -214,27 +225,31 @@ MainWindow.prototype.onBannerListUpdateSize = function() {
 	this.$body.scrollTop(scrollAmount);
 };
 
-MainWindow.prototype.makeDraggable = function() {
-	let $frameEl = this.$element.find(".oo-ui-window-frame");
-	let $handleEl = this.$element.find(".oo-ui-processDialog-location").css({"cursor":"move"});
+MainWindow.prototype.makeDraggable = function () {
+	let $frameEl = this.$element.find('.oo-ui-window-frame');
+	let $handleEl = this.$element
+		.find('.oo-ui-processDialog-location')
+		.css({ cursor: 'move' });
 	// Position for css translate transformations, relative to initial position
 	// (which is centered on viewport when scrolled to top)
 	let position = { x: 0, y: 0 };
-	const constrain = function(val, minVal, maxVal) {
+	const constrain = function (val, minVal, maxVal) {
 		if (val < minVal) return minVal;
 		if (val > maxVal) return maxVal;
 		return val;
 	};
-	const constrainX = (val) => {
+	const constrainX = val => {
 		// Don't too far horizontally (leave at least 100px visible)
-		let limit = window.innerWidth/2 + $frameEl.outerWidth()/2 - 100;
-		return constrain(val, -1*limit, limit);
+		let limit = window.innerWidth / 2 + $frameEl.outerWidth() / 2 - 100;
+		return constrain(val, -1 * limit, limit);
 	};
-	const constrainY = (val) => {
+	const constrainY = val => {
 		// Can't take title bar off the viewport, since it's the drag handle
-		let minLimit = -1*(window.innerHeight - $frameEl.outerHeight())/2;
+		let minLimit = (-1 * (window.innerHeight - $frameEl.outerHeight())) / 2;
 		// Don't go too far down the page: (whole page height) - (initial position)
-		let maxLimit = (document.documentElement||document).scrollHeight - window.innerHeight/2;
+		let maxLimit =
+			(document.documentElement || document).scrollHeight -
+			window.innerHeight / 2;
 		return constrain(val, minLimit, maxLimit);
 	};
 
@@ -256,7 +271,7 @@ MainWindow.prototype.makeDraggable = function() {
 		dragFrom.y = event.clientY;
 		position.x = constrainX(position.x + dx);
 		position.y = constrainY(position.y + dy);
-		$frameEl.css("transform", `translate(${position.x}px, ${position.y}px)`);
+		$frameEl.css('transform', `translate(${position.x}px, ${position.y}px)`);
 	};
 	let onDragEnd = () => {
 		pointerdown = false;
@@ -265,32 +280,39 @@ MainWindow.prototype.makeDraggable = function() {
 		// Make sure final positions are whole numbers
 		position.x = Math.round(position.x);
 		position.y = Math.round(position.y);
-		$frameEl.css("transform", `translate(${position.x}px, ${position.y}px)`);
+		$frameEl.css('transform', `translate(${position.x}px, ${position.y}px)`);
 	};
 
 	// Use pointer events if available; otherwise use mouse events
-	const pointer = ("PointerEvent" in window) ? "pointer" : "mouse";
-	$handleEl.on(pointer+"enter.raterMainWin", () => $frameEl.css("will-change", "transform") ); // Tell browser to optimise transform
-	$handleEl.on(pointer+"leave.raterMainWin", () => { if (!pointerdown) $frameEl.css("will-change", ""); } ); // Remove optimisation if not dragging
-	$handleEl.on(pointer+"down.raterMainWin", onDragStart);
-	$("body").on(pointer+"move.raterMainWin", onDragMove);
-	$("body").on(pointer+"up.raterMainWin", onDragEnd);
+	const pointer = 'PointerEvent' in window ? 'pointer' : 'mouse';
+	$handleEl.on(pointer + 'enter.raterMainWin', () =>
+		$frameEl.css('will-change', 'transform'),
+	); // Tell browser to optimise transform
+	$handleEl.on(pointer + 'leave.raterMainWin', () => {
+		if (!pointerdown) $frameEl.css('will-change', '');
+	}); // Remove optimisation if not dragging
+	$handleEl.on(pointer + 'down.raterMainWin', onDragStart);
+	$('body').on(pointer + 'move.raterMainWin', onDragMove);
+	$('body').on(pointer + 'up.raterMainWin', onDragEnd);
 };
 
 // Override the getBodyHeight() method to specify a custom height
 MainWindow.prototype.getBodyHeight = function () {
 	var currentlayout = this.contentArea.getCurrentItem();
 	var layoutHeight = currentlayout && currentlayout.$element.outerHeight(true);
-	var contentHeight = currentlayout && currentlayout.$element.children(":first-child").outerHeight(true);
+	var contentHeight =
+		currentlayout &&
+		currentlayout.$element.children(':first-child').outerHeight(true);
 	return Math.max(200, layoutHeight, contentHeight);
 };
 
-// Use getSetupProcess() to set up the window with data passed to it at the time 
+// Use getSetupProcess() to set up the window with data passed to it at the time
 // of opening
-MainWindow.prototype.getSetupProcess = function ( data ) {
+MainWindow.prototype.getSetupProcess = function (data) {
 	data = data || {};
-	return MainWindow.super.prototype.getSetupProcess.call( this, data )
-		.next( () => {
+	return MainWindow.super.prototype.getSetupProcess
+		.call(this, data)
+		.next(() => {
 			this.makeDraggable();
 			// Set up preferences
 			this.setPreferences(data.preferences);
@@ -301,269 +323,320 @@ MainWindow.prototype.getSetupProcess = function ( data ) {
 				redirect: data.redirectTarget,
 				isDisambig: data.disambig,
 				hasStubtag: data.stubtag,
-				isArticle: data.isArticle
+				isArticle: data.isArticle,
 			};
 			// Set up edit mode banners
-			this.actions.setMode("edit");
-			this.bannerList.oresClass = (data.isArticle && data.isList)
-				? "List"
-				: data.ores && data.ores.prediction;
+			this.actions.setMode('edit');
+			this.bannerList.oresClass =
+				data.isArticle && data.isList
+					? 'List'
+					: data.ores && data.ores.prediction;
 			this.bannerList.pageInfo = this.pageInfo;
 			this.bannerList.addItems(
-				data.banners.map( bannerTemplate => new BannerWidget(
-					bannerTemplate,
-					{
-						preferences: this.preferences,
-						$overlay: this.$overlay,
-						isArticle: this.pageInfo.isArticle
-					}
-				) )
+				data.banners.map(
+					bannerTemplate =>
+						new BannerWidget(bannerTemplate, {
+							preferences: this.preferences,
+							$overlay: this.$overlay,
+							isArticle: this.pageInfo.isArticle,
+						}),
+				),
 			);
-			let shellTemplateBanner = this.bannerList.items.find(banner => banner.isShellTemplate);
+			let shellTemplateBanner = this.bannerList.items.find(
+				banner => banner.isShellTemplate,
+			);
 			if (shellTemplateBanner && shellTemplateBanner.shellParam1Value) {
-				shellTemplateBanner.nonStandardTemplates = this.bannerList.items.reduce(
-					(bannersList, curBanner) => bannersList.replace(curBanner.wikitext, ""),
-					shellTemplateBanner.shellParam1Value
-				).trim().replace(/\n+/g, "\n");
+				shellTemplateBanner.nonStandardTemplates = this.bannerList.items
+					.reduce(
+						(bannersList, curBanner) =>
+							bannersList.replace(curBanner.wikitext, ''),
+						shellTemplateBanner.shellParam1Value,
+					)
+					.trim()
+					.replace(/\n+/g, '\n');
 			}
-			this.bannerList.addShellTemplateIfNeeeded()
+			this.bannerList
+				.addShellTemplateIfNeeeded()
 				.syncShellTemplateWithBiographyBanner();
 			// Show page type, or ORES prediction, if available
 			if (this.pageInfo.redirect) {
-				this.pagetypeLabel.setLabel("Redirect page").toggle(true);
+				this.pagetypeLabel.setLabel('Redirect page').toggle(true);
 			} else if (this.pageInfo.isDisambig) {
-				this.pagetypeLabel.setLabel("Disambiguation page").toggle(true);
+				this.pagetypeLabel.setLabel('Disambiguation page').toggle(true);
 			} else if (this.pageInfo.isArticle && data.isGA) {
-				this.pagetypeLabel.setLabel("Good article").toggle(true);
+				this.pagetypeLabel.setLabel('Good article').toggle(true);
 			} else if (this.pageInfo.isArticle && data.isFA) {
-				this.pagetypeLabel.setLabel("Featured article").toggle(true);
+				this.pagetypeLabel.setLabel('Featured article').toggle(true);
 			} else if (this.pageInfo.isArticle && data.isFL) {
-				this.pagetypeLabel.setLabel("Featured list").toggle(true);
+				this.pagetypeLabel.setLabel('Featured list').toggle(true);
 			} else if (this.pageInfo.isArticle && data.isList) {
-				this.pagetypeLabel.setLabel("List article").toggle(true);
+				this.pagetypeLabel.setLabel('List article').toggle(true);
 			} else if (data.ores) {
 				this.oresClass = data.ores.prediction;
-				this.oresLabel.toggle(true).$element.find(".oresPrediction").append(
-					"Prediction: ",
-					$("<strong>").text(data.ores.prediction),
-					"&nbsp;(" + data.ores.probability + ")"
-				);
+				this.oresLabel
+					.toggle(true)
+					.$element.find('.oresPrediction')
+					.append(
+						'Prediction: ',
+						$('<strong>').text(data.ores.prediction),
+						'&nbsp;(' + data.ores.probability + ')',
+					);
 			} else if (this.pageInfo.isArticle) {
-				this.pagetypeLabel.setLabel("Article page").toggle(true);
+				this.pagetypeLabel.setLabel('Article page').toggle(true);
 			} else {
-				this.pagetypeLabel.setLabel( this.subjectPage.getNamespacePrefix().slice(0,-1) + " page" ).toggle(true);
+				this.pagetypeLabel
+					.setLabel(
+						this.subjectPage.getNamespacePrefix().slice(0, -1) + ' page',
+					)
+					.toggle(true);
 			}
 			// Set props for use in making wikitext and edit summaries
 			this.talkWikitext = data.talkWikitext;
-			this.existingBannerNames = data.banners.map( bannerTemplate => bannerTemplate.name );
+			this.existingBannerNames = data.banners.map(
+				bannerTemplate => bannerTemplate.name,
+			);
 			this.talkpage = data.talkpage;
 			// Force a size update to ensure eveything fits okay
 			this.updateSize();
-		}, this );
+		}, this);
 };
 
 // Set up the window it is ready: attached to the DOM, and opening animation completed
-MainWindow.prototype.getReadyProcess = function ( data ) {
+MainWindow.prototype.getReadyProcess = function (data) {
 	data = data || {};
-	return MainWindow.super.prototype.getReadyProcess.call( this, data )
-		.next( () => this.topBar.searchBox.focus() );
+	return MainWindow.super.prototype.getReadyProcess
+		.call(this, data)
+		.next(() => this.topBar.searchBox.focus());
 };
 
 // Use the getActionProcess() method to do things when actions are clicked
-MainWindow.prototype.getActionProcess = function ( action ) {
-	if ( action === "showPrefs" ) {
-		this.actions.setMode("prefs");
-		this.contentArea.setItem( this.prefsLayout );
+MainWindow.prototype.getActionProcess = function (action) {
+	if (action === 'showPrefs') {
+		this.actions.setMode('prefs');
+		this.contentArea.setItem(this.prefsLayout);
 		this.topBar.setDisabled(true);
 		this.updateSize();
-
-	} else if ( action === "savePrefs" ) {
+	} else if (action === 'savePrefs') {
 		var updatedPrefs = this.prefsForm.getPrefs();
 		return new OO.ui.Process().next(
 			ApiSetPrefs(updatedPrefs).then(
 				// Success
 				() => {
 					this.setPreferences(updatedPrefs);
-					this.actions.setMode("edit");
-					this.contentArea.setItem( this.editLayout );
+					this.actions.setMode('edit');
+					this.contentArea.setItem(this.editLayout);
 					this.topBar.setDisabled(false);
 					this.updateSize();
 				},
 				// Failure
-				(code, err) => $.Deferred().reject(
-					new OO.ui.Error(
-						$("<div>").append(
-							$("<strong style='display:block;'>").text("Could not save preferences."),
-							$("<span style='color:#777'>").text( makeErrorMsg(code, err) )
-						)
-					)
-				)
-			)
+				(code, err) =>
+					$.Deferred().reject(
+						new OO.ui.Error(
+							$('<div>').append(
+								$("<strong style='display:block;'>").text(
+									'Could not save preferences.',
+								),
+								$("<span style='color:#777'>").text(makeErrorMsg(code, err)),
+							),
+						),
+					),
+			),
 		);
-
-	} else if ( action === "clearCache" ) {
+	} else if (action === 'clearCache') {
 		return new OO.ui.Process().next(() => {
 			cache.clearAllItems();
-			this.close({restart: true});
+			this.close({ restart: true });
 		});
-
-
-	} else if ( action === "closePrefs" ) {
-		this.actions.setMode("edit");
-		this.contentArea.setItem( this.editLayout );
+	} else if (action === 'closePrefs') {
+		this.actions.setMode('edit');
+		this.contentArea.setItem(this.editLayout);
 		this.topBar.setDisabled(false);
 		this.prefsForm.setPrefValues(this.preferences);
 		this.updateSize();
-
-	} else if ( action === "save" ) {
-		return new OO.ui.Process().next(
-			API.editWithRetry(
-				this.talkpage.getPrefixedText(),
-				{rvsection: 0},
-				revision => ({
-					section: 0,
-					text: this.transformTalkWikitext(revision.content),
-					summary: this.makeEditSummary(),
-					watchlist: this.preferences.watchlist
-				})
-			).catch((code, err) => $.Deferred().reject(
-				new OO.ui.Error(
-					$("<div>").append(
-						$("<strong style='display:block;'>").text("Could not save your changes."),
-						$("<span style='color:#777'>").text( makeErrorMsg(code, err) )
-					)
-				)
-			) )
-		).next( () => this.close({
-			success: true,
-			upgradedStub: this.pageInfo.hasStubtag && this.isRatedAndNotStub()
-		}) );
-
-	} else if ( action === "preview" ) {
-		return new OO.ui.Process().next(
-			API.post({
-				action: "parse",
-				contentmodel: "wikitext",
-				text: this.transformTalkWikitext(this.talkWikitext) + "\n<hr>\n" + "'''Edit summary:''' " + this.makeEditSummary(),
-				title: this.talkpage.getPrefixedText(),
-				pst: 1
-			}).then( result => {
-				if ( !result || !result.parse || !result.parse.text || !result.parse.text["*"] ) {
-					return $.Deferred().reject("Empty result");
-				}
-				var previewHtmlSnippet = new OO.ui.HtmlSnippet(result.parse.text["*"]);
-
-				this.parsedContentWidget.setLabel(previewHtmlSnippet);
-				this.parsedContentContainer.setLabel("Preview:");
-				this.actions.setMode("preview");
-				this.contentArea.setItem( this.parsedContentLayout );
-				this.topBar.setDisabled(true);
-				this.updateSize();
-			})
-				.catch( (code, err) => $.Deferred().reject(
-					new OO.ui.Error(
-						$("<div>").append(
-							$("<strong style='display:block;'>").text("Could not show changes."),
-							$("<span style='color:#777'>").text( makeErrorMsg(code, err) )
-						)
-					)
-				) )
-		);
-
-	} else if ( action === "changes" ) {
-		return new OO.ui.Process().next(
-			API.post({
-				action: "compare",
-				format: "json",
-				fromtext: this.talkWikitext,
-				fromcontentmodel: "wikitext",
-				totext: this.transformTalkWikitext(this.talkWikitext),
-				tocontentmodel: "wikitext",
-				prop: "diff"
-			})
-				.then( result => {
-					if ( !result || !result.compare || !result.compare["*"] ) {
-						return $.Deferred().reject("Empty result");
-					}
-					var $diff = $("<table>").addClass("diff").css("width", "100%").append(
-						$("<tr>").append(
-							$("<th>").attr({"colspan":"2", "scope":"col"}).css("width", "50%").text("Latest revision"),
-							$("<th>").attr({"colspan":"2", "scope":"col"}).css("width", "50%").text("New text")
+	} else if (action === 'save') {
+		return new OO.ui.Process()
+			.next(
+				API.editWithRetry(
+					this.talkpage.getPrefixedText(),
+					{ rvsection: 0 },
+					revision => ({
+						section: 0,
+						text: this.transformTalkWikitext(revision.content),
+						summary: this.makeEditSummary(),
+						watchlist: this.preferences.watchlist,
+					}),
+				).catch((code, err) =>
+					$.Deferred().reject(
+						new OO.ui.Error(
+							$('<div>').append(
+								$("<strong style='display:block;'>").text(
+									'Could not save your changes.',
+								),
+								$("<span style='color:#777'>").text(makeErrorMsg(code, err)),
+							),
 						),
-						result.compare["*"],
-						$("<tfoot>").append(
-							$("<tr>").append(
-								$("<td colspan='4'>").append(
-									$("<strong>").text("Edit summary: "),
-									this.makeEditSummary()
-								)
-							)
-						)
+					),
+				),
+			)
+			.next(() =>
+				this.close({
+					success: true,
+					upgradedStub: this.pageInfo.hasStubtag && this.isRatedAndNotStub(),
+				}),
+			);
+	} else if (action === 'preview') {
+		return new OO.ui.Process().next(
+			API.post({
+				action: 'parse',
+				contentmodel: 'wikitext',
+				text:
+					this.transformTalkWikitext(this.talkWikitext) +
+					'\n<hr>\n' +
+					"'''Edit summary:''' " +
+					this.makeEditSummary(),
+				title: this.talkpage.getPrefixedText(),
+				pst: 1,
+			})
+				.then(result => {
+					if (
+						!result ||
+						!result.parse ||
+						!result.parse.text ||
+						!result.parse.text['*']
+					) {
+						return $.Deferred().reject('Empty result');
+					}
+					var previewHtmlSnippet = new OO.ui.HtmlSnippet(
+						result.parse.text['*'],
 					);
 
-					this.parsedContentWidget.setLabel($diff);
-					this.parsedContentContainer.setLabel("Changes:");
-					this.actions.setMode("diff");
-					this.contentArea.setItem( this.parsedContentLayout );
+					this.parsedContentWidget.setLabel(previewHtmlSnippet);
+					this.parsedContentContainer.setLabel('Preview:');
+					this.actions.setMode('preview');
+					this.contentArea.setItem(this.parsedContentLayout);
 					this.topBar.setDisabled(true);
 					this.updateSize();
-				} )
-				.catch( (code, err) => $.Deferred().reject(
-					new OO.ui.Error(
-						$("<div>").append(
-							$("<strong style='display:block;'>").text("Could not show changes."),
-							$("<span style='color:#777'>").text( makeErrorMsg(code, err) )
-						)
-					)
-				) )
+				})
+				.catch((code, err) =>
+					$.Deferred().reject(
+						new OO.ui.Error(
+							$('<div>').append(
+								$("<strong style='display:block;'>").text(
+									'Could not show changes.',
+								),
+								$("<span style='color:#777'>").text(makeErrorMsg(code, err)),
+							),
+						),
+					),
+				),
 		);
+	} else if (action === 'changes') {
+		return new OO.ui.Process().next(
+			API.post({
+				action: 'compare',
+				format: 'json',
+				fromtext: this.talkWikitext,
+				fromcontentmodel: 'wikitext',
+				totext: this.transformTalkWikitext(this.talkWikitext),
+				tocontentmodel: 'wikitext',
+				prop: 'diff',
+			})
+				.then(result => {
+					if (!result || !result.compare || !result.compare['*']) {
+						return $.Deferred().reject('Empty result');
+					}
+					var $diff = $('<table>')
+						.addClass('diff')
+						.css('width', '100%')
+						.append(
+							$('<tr>').append(
+								$('<th>')
+									.attr({ colspan: '2', scope: 'col' })
+									.css('width', '50%')
+									.text('Latest revision'),
+								$('<th>')
+									.attr({ colspan: '2', scope: 'col' })
+									.css('width', '50%')
+									.text('New text'),
+							),
+							result.compare['*'],
+							$('<tfoot>').append(
+								$('<tr>').append(
+									$("<td colspan='4'>").append(
+										$('<strong>').text('Edit summary: '),
+										this.makeEditSummary(),
+									),
+								),
+							),
+						);
 
-	} else if ( action === "back" ) {
-		this.actions.setMode("edit");
-		this.contentArea.setItem( this.editLayout );
+					this.parsedContentWidget.setLabel($diff);
+					this.parsedContentContainer.setLabel('Changes:');
+					this.actions.setMode('diff');
+					this.contentArea.setItem(this.parsedContentLayout);
+					this.topBar.setDisabled(true);
+					this.updateSize();
+				})
+				.catch((code, err) =>
+					$.Deferred().reject(
+						new OO.ui.Error(
+							$('<div>').append(
+								$("<strong style='display:block;'>").text(
+									'Could not show changes.',
+								),
+								$("<span style='color:#777'>").text(makeErrorMsg(code, err)),
+							),
+						),
+					),
+				),
+		);
+	} else if (action === 'back') {
+		this.actions.setMode('edit');
+		this.contentArea.setItem(this.editLayout);
 		this.topBar.setDisabled(false);
 		this.updateSize();
-
 	} else if (!action && this.bannerList.changed) {
-		// Confirm closing of dialog if there have been changes 
+		// Confirm closing of dialog if there have been changes
 		return new OO.ui.Process().next(
-			OO.ui.confirm("Changes made will be discarded.", {title:"Close Rater?"})
-				.then(confirmed => confirmed ? this.close() : null)
+			OO.ui
+				.confirm('Changes made will be discarded.', { title: 'Close Rater?' })
+				.then(confirmed => (confirmed ? this.close() : null)),
 		);
 	}
 
-	return MainWindow.super.prototype.getActionProcess.call( this, action );
+	return MainWindow.super.prototype.getActionProcess.call(this, action);
 };
 
 // Use the getTeardownProcess() method to perform actions whenever the dialog is closed.
 // `data` is the data passed into the window's .close() method.
-MainWindow.prototype.getTeardownProcess = function ( data ) {
-	return MainWindow.super.prototype.getTeardownProcess.call( this, data )
-		.first( () => {
+MainWindow.prototype.getTeardownProcess = function (data) {
+	return MainWindow.super.prototype.getTeardownProcess
+		.call(this, data)
+		.first(() => {
 			this.bannerList.clearItems();
-			this.topBar.searchBox.setValue("");
-			this.contentArea.setItem( this.editLayout );
+			this.topBar.searchBox.setValue('');
+			this.contentArea.setItem(this.editLayout);
 			this.topBar.setDisabled(false);
-			this.oresLabel.toggle(false).$element.find(".oresPrediction").empty();
-			this.pagetypeLabel.toggle(false).setLabel("");
+			this.oresLabel.toggle(false).$element.find('.oresPrediction').empty();
+			this.pagetypeLabel.toggle(false).setLabel('');
 
-			this.$element.find(".oo-ui-window-frame").css("transform","");
-			this.$element.find(".oo-ui-processDialog-location").off(".raterMainWin");
-			$("body").off(".raterMainWin");
-		} );
+			this.$element.find('.oo-ui-window-frame').css('transform', '');
+			this.$element.find('.oo-ui-processDialog-location').off('.raterMainWin');
+			$('body').off('.raterMainWin');
+		});
 };
 
-MainWindow.prototype.setPreferences = function(prefs) {
+MainWindow.prototype.setPreferences = function (prefs) {
 	this.preferences = $.extend({}, appConfig.defaultPrefs, prefs);
 	// Applies preferences to existing items in the window:
 	this.bannerList.setPreferences(this.preferences);
 };
 
-MainWindow.prototype.onResetCache = function() {
-	this.executeAction("clearCache");
+MainWindow.prototype.onResetCache = function () {
+	this.executeAction('clearCache');
 };
 
-MainWindow.prototype.onSearchSelect = function(data) {
+MainWindow.prototype.onSearchSelect = function (data) {
 	this.topBar.searchBox.pushPending();
 	var name = this.topBar.searchBox.getValue().trim();
 	if (!name) {
@@ -571,57 +644,69 @@ MainWindow.prototype.onSearchSelect = function(data) {
 		return;
 	}
 	var existingBanner = this.bannerList.items.find(banner => {
-		return banner.mainText === name ||	banner.redirectTargetMainText === name;
+		return banner.mainText === name || banner.redirectTargetMainText === name;
 	});
 
 	// Abort and show alert if banner already exists
 	if (existingBanner) {
 		this.topBar.searchBox.popPending();
-		return OO.ui.alert("There is already a {{" + name + "}} banner").then(this.searchBox.focus());
+		return OO.ui
+			.alert('There is already a {{' + name + '}} banner')
+			.then(this.searchBox.focus());
 	}
 
 	// Confirmation required for banners missing WikiProject from name, and for uncreated disambiguation talk pages
 	var confirmText;
 	if (!/^[Ww](?:P|iki[Pp]roject)/.test(name)) {
 		confirmText = new OO.ui.HtmlSnippet(
-			"{{" + mw.html.escape(name) + "}} is not a recognised WikiProject banner.<br/>Do you want to continue?"
+			'{{' +
+				mw.html.escape(name) +
+				'}} is not a recognised WikiProject banner.<br/>Do you want to continue?',
 		);
-	} else if (name === "WikiProject Disambiguation" && $("#ca-talk.new").length !== 0 && this.bannerList.items.length === 0) {
-		confirmText = "New talk pages shouldn't be created if they will only contain the \{\{WikiProject Disambiguation\}\} banner. Continue?";
+	} else if (
+		name === 'WikiProject Disambiguation' &&
+		$('#ca-talk.new').length !== 0 &&
+		this.bannerList.items.length === 0
+	) {
+		confirmText =
+			"New talk pages shouldn't be created if they will only contain the \{\{WikiProject Disambiguation\}\} banner. Continue?";
 	}
-	$.when( confirmText ? OO.ui.confirm(confirmText) : true)
-		.then( confirmed => {
+	$.when(confirmText ? OO.ui.confirm(confirmText) : true)
+		.then(confirmed => {
 			if (!confirmed) return;
 			// Create Template object
 			return BannerWidget.newFromTemplateName(name, data, {
 				preferences: this.preferences,
 				$overlay: this.$overlay,
-				isArticle: this.pageInfo.isArticle
-			})
-				.then(banner => {
-					this.bannerList.addItems( [banner] );
-					banner.setChanged();
-					this.updateSize();
-				});
+				isArticle: this.pageInfo.isArticle,
+			}).then(banner => {
+				this.bannerList.addItems([banner]);
+				banner.setChanged();
+				this.updateSize();
+			});
 		})
-		.then( () => this.topBar.searchBox.setValue("").focus().popPending() );
+		.then(() => this.topBar.searchBox.setValue('').focus().popPending());
 };
 
-MainWindow.prototype.onSetClasses = function(classVal) {
-	const shellTemplate = this.bannerList.items.find(banner => banner.isShellTemplate);
+MainWindow.prototype.onSetClasses = function (classVal) {
+	const shellTemplate = this.bannerList.items.find(
+		banner => banner.isShellTemplate,
+	);
 	if (shellTemplate) {
 		shellTemplate.classDropdown.getMenu().selectItemByData(classVal);
 		shellTemplate.classDropdown.setAutofilled(false);
 	}
 	this.bannerList.items.forEach(banner => {
-		if (banner.hasClassRatings &&!banner.isShellTemplate) {
-			banner.classDropdown.getMenu().selectItemByData(shellTemplate ? null : classVal);
+		if (banner.hasClassRatings && !banner.isShellTemplate) {
+			banner.classDropdown
+				.getMenu()
+				.selectItemByData(shellTemplate ? null : classVal);
 			banner.classDropdown.setAutofilled(false);
 		}
 	});
 };
 
-MainWindow.prototype.onSetImportances = function(importanceVal) {
+MainWindow.prototype.onSetImportances = function (importanceVal) {
 	this.bannerList.items.forEach(banner => {
 		if (banner.hasImportanceRatings) {
 			banner.importanceDropdown.getMenu().selectItemByData(importanceVal);
@@ -630,15 +715,15 @@ MainWindow.prototype.onSetImportances = function(importanceVal) {
 	});
 };
 
-MainWindow.prototype.onRemoveAll = function() {
+MainWindow.prototype.onRemoveAll = function () {
 	this.bannerList.clearItems();
 };
 
-MainWindow.prototype.onClearAll = function() {
-	this.bannerList.items.forEach( banner => banner.onClearButtonClick() );
+MainWindow.prototype.onClearAll = function () {
+	this.bannerList.items.forEach(banner => banner.onClearButtonClick());
 };
 
-MainWindow.prototype.transformTalkWikitext = function(talkWikitext) {
+MainWindow.prototype.transformTalkWikitext = function (talkWikitext) {
 	var bannersWikitext = this.bannerList.makeWikitext();
 	if (!talkWikitext) {
 		return bannersWikitext.trim();
@@ -648,61 +733,71 @@ MainWindow.prototype.transformTalkWikitext = function(talkWikitext) {
 	// replace existing banners wikitext with a control character
 	talkTemplates.forEach(template => {
 		if (this.existingBannerNames.includes(template.name)) {
-			talkWikitext = talkWikitext.replace(template.wikitext, "\x01");
+			talkWikitext = talkWikitext.replace(template.wikitext, '\x01');
 		}
 	});
 	// replace insertion point (first control character) with a different control character
-	talkWikitext = talkWikitext.replace("\x01", "\x02");
+	talkWikitext = talkWikitext.replace('\x01', '\x02');
 	// remove other control characters
-	talkWikitext = talkWikitext.replace(/(?:\s|\n)*\x01(?:\s|\n)*/g,"");
+	talkWikitext = talkWikitext.replace(/(?:\s|\n)*\x01(?:\s|\n)*/g, '');
 	// split into wikitext before/after the remaining control character (and trim each section)
-	var talkWikitextSections = talkWikitext.split("\x02").map(t => t.trim());
+	var talkWikitextSections = talkWikitext.split('\x02').map(t => t.trim());
 	if (talkWikitextSections.length === 2) {
 		// Found the insertion point for the banners
-		return (talkWikitextSections[0] + "\n" + bannersWikitext.trim() + "\n" + talkWikitextSections[1]).trim();
+		return (
+			talkWikitextSections[0] +
+			'\n' +
+			bannersWikitext.trim() +
+			'\n' +
+			talkWikitextSections[1]
+		).trim();
 	}
 	// Check if there's anything beside templates
 	var tempStr = talkWikitext;
 	talkTemplates.forEach(template => {
-		tempStr = tempStr.replace(template.wikitext, "");
+		tempStr = tempStr.replace(template.wikitext, '');
 	});
 	if (/^#REDIRECT/i.test(talkWikitext) || !tempStr.trim()) {
 		// Is a redirect, or everything is a template: insert at the end
-		return talkWikitext.trim() + "\n" + bannersWikitext.trim();
+		return talkWikitext.trim() + '\n' + bannersWikitext.trim();
 	} else {
 		// There is non-template content, so insert at the start
-		return bannersWikitext.trim() + "\n" + talkWikitext.trim();
+		return bannersWikitext.trim() + '\n' + talkWikitext.trim();
 	}
 };
 
-MainWindow.prototype.isRatedAndNotStub = function() {
-	const nonStubRatinggs = this.bannerList.items.filter(banner =>
-		banner.hasClassRatings &&
-		banner.classDropdown.getValue() &&
-		banner.classDropdown.getValue() !== "Stub"
+MainWindow.prototype.isRatedAndNotStub = function () {
+	const nonStubRatinggs = this.bannerList.items.filter(
+		banner =>
+			banner.hasClassRatings &&
+			banner.classDropdown.getValue() &&
+			banner.classDropdown.getValue() !== 'Stub',
 	);
 	return nonStubRatinggs.length > 0;
 };
 
-MainWindow.prototype.makeEditSummary = function() {
+MainWindow.prototype.makeEditSummary = function () {
 	const removedBanners = [];
 	const editedBanners = [];
 	const newBanners = [];
-	const shortName = name => name.replace("WikiProject ","").replace("Subst:","");
+	const shortName = name =>
+		name.replace('WikiProject ', '').replace('Subst:', '');
 
 	// Overall class/importance, if all the same
 	const allClasses = uniqueArray(
-		filterAndMap(this.bannerList.items,
+		filterAndMap(
+			this.bannerList.items,
 			banner => banner.hasClassRatings || banner.isShellTemplate,
-			banner => banner.classDropdown.getValue()
-		)
+			banner => banner.classDropdown.getValue(),
+		),
 	);
 	let overallClass = allClasses.length === 1 && allClasses[0];
 	const allImportances = uniqueArray(
-		filterAndMap(this.bannerList.items,
+		filterAndMap(
+			this.bannerList.items,
 			banner => banner.hasImportanceRatings,
-			banner => banner.importanceDropdown.getValue()
-		)
+			banner => banner.importanceDropdown.getValue(),
+		),
 	);
 	let overallImportance = allImportances.length === 1 && allImportances[0];
 	// Don't use them unless some have changed
@@ -711,44 +806,71 @@ MainWindow.prototype.makeEditSummary = function() {
 
 	// removed banners:
 	this.existingBannerNames.forEach(name => {
-		const banner = this.bannerList.items.find( banner => banner.name === name || banner.bypassedName === name );
+		const banner = this.bannerList.items.find(
+			banner => banner.name === name || banner.bypassedName === name,
+		);
 		if (!banner) {
-			removedBanners.push("−" + shortName(name));
+			removedBanners.push('−' + shortName(name));
 		}
 	});
 	// edited & new banners
-	this.bannerList.items.forEach( banner => {
+	this.bannerList.items.forEach(banner => {
 		const isNew = !banner.wikitext; // not added from wikitext on page
 		if (!isNew && !banner.changed) {
 			// Not changed
 			return;
 		}
-		let newClass = banner.hasClassRatings &&  (isNew || banner.classChanged) && banner.classDropdown.getValue();
-		if (newClass) { someClassesChanged = true; }
-		if (overallClass) { newClass = null; }
+		let newClass =
+			banner.hasClassRatings &&
+			(isNew || banner.classChanged) &&
+			banner.classDropdown.getValue();
+		if (newClass) {
+			someClassesChanged = true;
+		}
+		if (overallClass) {
+			newClass = null;
+		}
 
-		let newImportance = banner.hasImportanceRatings && (isNew || banner.importanceChanged) && banner.importanceDropdown.getValue();
-		if (newImportance) { someImportancesChanged = true; }
-		if (overallImportance) { newImportance = null; }
+		let newImportance =
+			banner.hasImportanceRatings &&
+			(isNew || banner.importanceChanged) &&
+			banner.importanceDropdown.getValue();
+		if (newImportance) {
+			someImportancesChanged = true;
+		}
+		if (overallImportance) {
+			newImportance = null;
+		}
 
-		let rating = (newClass && newImportance)
-			? newClass + "/" + newImportance
-			: newClass || newImportance || "";
-		if (rating) { rating = " (" + rating + ")"; }
-		
+		let rating =
+			newClass && newImportance
+				? newClass + '/' + newImportance
+				: newClass || newImportance || '';
+		if (rating) {
+			rating = ' (' + rating + ')';
+		}
+
 		if (isNew) {
-			newBanners.push("+" + shortName(banner.name) + rating);
+			newBanners.push('+' + shortName(banner.name) + rating);
 		} else {
 			editedBanners.push(shortName(banner.name) + rating);
 		}
 	});
 	// overall rating
-	let overallRating = (someClassesChanged && overallClass && someImportancesChanged && overallImportance)
-		? overallClass + "/" + overallImportance
-		: (someClassesChanged && overallClass) || (someImportancesChanged && overallImportance) || "";
-	if (overallRating) { overallRating = " (" + overallRating + ")"; }
+	let overallRating =
+		someClassesChanged &&
+		overallClass &&
+		someImportancesChanged &&
+		overallImportance
+			? overallClass + '/' + overallImportance
+			: (someClassesChanged && overallClass) ||
+				(someImportancesChanged && overallImportance) ||
+				'';
+	if (overallRating) {
+		overallRating = ' (' + overallRating + ')';
+	}
 
-	return `Assessment${overallRating}: ${[...editedBanners, ...newBanners, ...removedBanners].join(", ")}${appConfig.script.advert}`;
+	return `Assessment${overallRating}: ${[...editedBanners, ...newBanners, ...removedBanners].join(', ')}${appConfig.script.advert}`;
 };
 
 export default MainWindow;
