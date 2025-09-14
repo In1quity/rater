@@ -398,7 +398,6 @@ Template.prototype.setParamDataAndSuggestions = function () {
 						);
 						self.paramData[paraName].allowedValues = allowedVals;
 					} catch (_e) {
-						 
 						console.warn(
 							'[Rater] Could not parse allowed values in description:\n  ' +
 								paraData.description.en +
