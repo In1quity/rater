@@ -4,6 +4,9 @@ import config from "./config";
 import * as cache from "./cache";
 // <nowiki>
 
+// Debug logger (enable via window.RATER_DEBUG)
+var tdLog = function(){ try { if (window && window.RATER_DEBUG) { var args = Array.prototype.slice.call(arguments); args.unshift("[Rater][TD]"); console.log.apply(console, args); } } catch(e) { /* ignore */ } };
+
 /** Template
  *
  * @class
@@ -303,8 +306,33 @@ Template.prototype.setParamDataAndSuggestions = function() {
 		? self.redirectTarget.getPrefixedText()
 		: self.getTitle().getPrefixedText();
 
+	try { tdLog("load start", prefixedText); } catch(e) { /* ignore */ }
+
 	var cachedInfo = cache.read(prefixedText + "-params");
-	
+
+	// helper to compute canonical names using current self.paramData/self.paramAliases
+	var computeCanonicalNames = function(){
+		var findByNameOrAlias = function(target){
+			var lcTarget = String(target || "").toLowerCase();
+			for (var key in self.paramData) { if (Object.prototype.hasOwnProperty.call(self.paramData, key)) { if (String(key).toLowerCase() === lcTarget) { return key; } } }
+			for (var alias in self.paramAliases) { if (Object.prototype.hasOwnProperty.call(self.paramAliases, alias)) { if (String(alias).toLowerCase() === lcTarget) { return self.paramAliases[alias]; } } }
+			return null;
+		};
+		var className = findByNameOrAlias("class");
+		var importanceName = findByNameOrAlias("importance");
+		if (!className) {
+			var keys = Object.keys(self.paramData||{});
+			className = keys.find(function(k){ var s = String(k).toLowerCase(); return /class|класс|уров/i.test(s); });
+		}
+		if (!importanceName) {
+			var keys2 = Object.keys(self.paramData||{});
+			importanceName = keys2.find(function(k){ var s = String(k).toLowerCase(); return /importance|важност/i.test(s); });
+		}
+		self.classParamName = className || "class";
+		self.importanceParamName = importanceName || "importance";
+		try { tdLog("canonical keys", { class: self.classParamName, importance: self.importanceParamName }); } catch(e) { /* ignore */ }
+	};
+
 	if (
 		cachedInfo &&
 		cachedInfo.value &&
@@ -317,7 +345,15 @@ Template.prototype.setParamDataAndSuggestions = function() {
 		self.paramData = cachedInfo.value.paramData;
 		self.parameterSuggestions = cachedInfo.value.parameterSuggestions;
 		self.paramAliases = cachedInfo.value.paramAliases;
-		
+		// rebuild aliases from paramData to avoid stale/empty cache
+		self.paramAliases = {};
+		$.each(self.paramData, function(paraName, paraData) {
+			if (paraData && Array.isArray(paraData.aliases)) {
+				paraData.aliases.forEach(function(alias){ self.paramAliases[alias] = paraName; });
+			}
+		});
+		computeCanonicalNames();
+		try { tdLog("param keys (cache)", Object.keys(self.paramData)); tdLog("aliases (cache)", self.paramAliases); } catch(e) { /* ignore */ }
 		paramDataSet.resolve();
 		if ( !isAfterDate(cachedInfo.staleDate) ) {
 			// Just use the cached data
@@ -375,6 +411,8 @@ Template.prototype.setParamDataAndSuggestions = function() {
 					}
 				}
 			});
+			computeCanonicalNames();
+			try { tdLog("param keys (api)", Object.keys(self.paramData)); tdLog("aliases (api)", self.paramAliases); } catch(e) { /* ignore */ }
 		
 			// Make suggestions for combobox
 			var allParamsArray = ( !self.notemplatedata && result.pages[id].paramOrder ) ||
@@ -491,6 +529,44 @@ Template.prototype.setClassesAndImportances = function() {
 
 	var mainText = this.getTitle().getMainText();
 
+	// Prefer TemplateData-defined values when available
+	try {
+		tdLog("TD param presence", {
+			classKey: this.classParamName,
+			importanceKey: this.importanceParamName,
+			hasClass: !!(this.paramData && this.paramData[this.classParamName]),
+			hasImportance: !!(this.paramData && this.paramData[this.importanceParamName])
+		});
+	} catch(e) { /* ignore */ }
+
+	var tdClasses = (this.getDataForParam("suggestedvalues", this.classParamName) || this.getDataForParam("allowedValues", this.classParamName));
+	var tdImportances = (this.getDataForParam("suggestedvalues", this.importanceParamName) || this.getDataForParam("allowedValues", this.importanceParamName));
+	try {
+		tdLog("TD arrays", {
+			classes: Array.isArray(tdClasses) && tdClasses.length,
+			importances: Array.isArray(tdImportances) && tdImportances.length,
+			values: { classes: tdClasses, importances: tdImportances }
+		});
+	} catch(e) { /* ignore */ }
+
+	if (Array.isArray(tdClasses) && tdClasses.length) {
+		this.classes = tdClasses;
+	}
+	if (Array.isArray(tdImportances) && tdImportances.length) {
+		this.importances = tdImportances;
+	}
+	// If TD declares importance param, but no values list was provided, fall back to defaults
+	if ((this.paramData && this.paramData[this.importanceParamName]) && (!Array.isArray(this.importances) || this.importances.length === 0)) {
+		this.importances = config.bannerDefaults.importances.slice();
+		try { tdLog("TD declares importance but no values → defaults", this.importances); } catch(e) { /* ignore */ }
+	}
+	// If both are now available, use them and short-circuit further detection
+	if (Array.isArray(this.classes) && this.classes.length && Array.isArray(this.importances) && this.importances.length) {
+		try { tdLog("TD ratings used", { classes: this.classes, importances: this.importances }); } catch(e) { /* ignore */ }
+		cache.write(mainText+"-ratings", { classes: this.classes, importances: this.importances }, 1);
+		return parsed.resolve();
+	}
+
 	// Some projects have hardcoded values, to avoid standard classes or to prevent API issues (timeout and/or node count exceeded)
 	const redirectTargetOrMainText = this.redirectTarget ? this.redirectTarget.getMainText() : mainText;
 	if ( config.customBanners[redirectTargetOrMainText] ) {
@@ -510,19 +586,26 @@ Template.prototype.setClassesAndImportances = function() {
 	) {
 		this.classes = cachedRatings.value.classes;
 		this.importances = cachedRatings.value.importances;
-		parsed.resolve();
-		if ( !isAfterDate(cachedRatings.staleDate) ) {
-			// Just use the cached data
-			return parsed;
-		} // else: Use the cache data for now, but also fetch new data from API
+		try { tdLog("ratings cache hit", { classes: this.classes, importances: this.importances }); } catch(e) { /* ignore */ }
+		var cacheHasImportances = Array.isArray(this.importances) && this.importances.length > 0;
+		if ( cacheHasImportances ) {
+			parsed.resolve();
+			if ( !isAfterDate(cachedRatings.staleDate) ) {
+				return parsed;
+			}
+		}
 	}
 
 	var wikitextToParse = "";	
+	var selfRef = this;
 	config.bannerDefaults.extendedClasses.forEach(function(classname, index) {
-		wikitextToParse += "{{" + mainText + "|class=" + classname + "|importance=" +
-		(config.bannerDefaults.extendedImportances[index] || "") + "}}/n";
+		var classKey = (selfRef.classParamName || "class");
+		var importanceKey = (selfRef.importanceParamName || "importance");
+		wikitextToParse += "{{" + mainText + "|" + classKey + "=" + classname + "|" + importanceKey + "=" +
+		(config.bannerDefaults.extendedImportances[index] || "") + "}}\n";
 	});
-	
+	try { tdLog("parse API request", { title: mainText, classKey: this.classParamName, importanceKey: this.importanceParamName, classesTried: config.bannerDefaults.extendedClasses.length, importancesTried: config.bannerDefaults.extendedImportances.length }); } catch(e) { /* ignore */ }
+
 	return API.get({
 		action: "parse",
 		title: "Talk:Wikipedia",

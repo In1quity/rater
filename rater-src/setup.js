@@ -85,16 +85,16 @@ var setupRater = function(clickEvent) {
 			});
 		});
 	
-	// Retrieve and store classes, importances, and TemplateData (task 4)
+	// Retrieve and store TemplateData first, then classes/importances (task 4)
 	var templateDetailsPromise = parseTalkPromise.then(function(templates) {
-		// Wait for all promises to resolve
-		return $.when.apply(null, [
-			...templates.map(template => template.isShellTemplate() ? null : template.setClassesAndImportances()),
-			...templates.map(template => template.setParamDataAndSuggestions())
-		]).then(() => {
-			// Add missing required/suggested values
-			templates.forEach(template => template.addMissingParams());
-			// Return the now-modified templates
+		var perTemplate = templates.map(function(template){
+			if (template.isShellTemplate()) { return $.Deferred().resolve(); }
+			return template.setParamDataAndSuggestions().then(function(){
+				return template.setClassesAndImportances();
+			});
+		});
+		return $.when.apply(null, perTemplate).then(function(){
+			templates.forEach(function(t){ t.addMissingParams(); });
 			return templates;
 		});
 	});

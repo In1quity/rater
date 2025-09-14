@@ -21,6 +21,8 @@ function BannerWidget( template, config ) {
 	/* --- PROPS --- */
 	this.paramData = template.paramData;
 	this.paramAliases = template.paramAliases || {};
+	this.classParamName = template.classParamName || "class";
+	this.importanceParamName = template.importanceParamName || "importance";
 	this.parameterSuggestions = template.parameterSuggestions;
 	this.name = template.name;
 	this.wikitext = template.wikitext;
@@ -97,9 +99,12 @@ function BannerWidget( template, config ) {
 			},
 			$overlay: this.$overlay,
 		} );
-		var shellClassParam = template.parameters.find(parameter => parameter.name === "class");
+		var shellClassParam = template.parameters.find(parameter => {
+			return isNameOrAliasOf(parameter.name, String(template.classParamName || "class").toLowerCase(), template.paramAliases);
+		});
 		this.classDropdown.getMenu().selectItemByData( shellClassParam && classMask(shellClassParam.value) );
 	} else if (this.hasClassRatings) {
+		// selectInitialValue helper is defined above
 		this.classDropdown = new DropdownParameterWidget( {
 			label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">Class</span>"),
 			menu: {
@@ -118,8 +123,11 @@ function BannerWidget( template, config ) {
 			},
 			$overlay: this.$overlay,
 		} );
-		var classParam = template.parameters.find(parameter => parameter.name === "class");
-		this.classDropdown.getMenu().selectItemByData( classParam && classMask(classParam.value) );
+		var classParam = template.parameters.find(parameter => {
+			return isNameOrAliasOf(parameter.name, String(template.classParamName || "class").toLowerCase(), template.paramAliases);
+		});
+		var preClass = selectInitialValue(template.classes, classParam && classParam.value, classMask);
+		this.classDropdown.getMenu().selectItemByData(preClass);
 	}
 
 	if (this.hasImportanceRatings) {
@@ -140,8 +148,11 @@ function BannerWidget( template, config ) {
 			},
 			$overlay: this.$overlay,
 		} );
-		var importanceParam = template.parameters.find(parameter => parameter.name === "importance");
-		this.importanceDropdown.getMenu().selectItemByData( importanceParam && importanceMask(importanceParam.value) );
+		var importanceParam = template.parameters.find(parameter => {
+			return isNameOrAliasOf(parameter.name, String(template.importanceParamName || "importance").toLowerCase(), template.paramAliases);
+		});
+		var preImp = selectInitialValue(template.importances, importanceParam && importanceParam.value, importanceMask);
+		this.importanceDropdown.getMenu().selectItemByData(preImp);
 	}
 
 	this.titleLayout = new OO.ui.HorizontalLayout( {
@@ -164,9 +175,11 @@ function BannerWidget( template, config ) {
 					this.shellParam1Value = param.value;
 					return false;
 				}
-				return param.name !== "class";
+				return !isNameOrAliasOf(param.name, String(template.classParamName || "class").toLowerCase(), template.paramAliases);
 			}
-			return param.name !== "class" && param.name !== "importance";
+			var classCanon = String(template.classParamName || "class").toLowerCase();
+			var impCanon = String(template.importanceParamName || "importance").toLowerCase();
+			return !(isNameOrAliasOf(param.name, classCanon, template.paramAliases) || isNameOrAliasOf(param.name, impCanon, template.paramAliases));
 		},
 		param => new ParameterWidget(param, template.paramData[param.name], {$overlay: this.$overlay})
 	);
@@ -488,8 +501,8 @@ BannerWidget.prototype.makeWikitext = function() {
 
 	return ("{{" +
 		this.name +
-		( (this.hasClassRatings || this.isShellTemplate) && classVal!=null ? `${pipe}class${equals}${classVal||""}` : "" ) +
-		( this.hasImportanceRatings && importanceVal!=null ? `${pipe}importance${equals}${importanceVal||""}` : "" ) +
+		( (this.hasClassRatings || this.isShellTemplate) && classVal!=null ? `${pipe}${this.classParamName||"class"}${equals}${classVal||""}` : "" ) +
+		( this.hasImportanceRatings && importanceVal!=null ? `${pipe}${this.importanceParamName||"importance"}${equals}${importanceVal||""}` : "" ) +
 		this.parameterList.getParameterItems()
 			.map(parameter => parameter.makeWikitext(pipe, equals))
 			.join("") +
@@ -503,6 +516,25 @@ BannerWidget.prototype.setPreferences = function(prefs) {
 		this.bypassRedirect();
 	}
 	this.parameterList.setPreferences(prefs);
+};
+
+// Helpers
+var isNameOrAliasOf = function(paramName, canonicalLower, aliasMap){
+	var n = String(paramName).toLowerCase();
+	if ( n === canonicalLower ) { return true; }
+	var aliasCanon = aliasMap && aliasMap[paramName];
+	return !!(aliasCanon && String(aliasCanon).toLowerCase() === canonicalLower);
+};
+
+var selectInitialValue = function(options, rawValue, maskFn){
+	var out = rawValue;
+	if (out && Array.isArray(options) && options.length) {
+		var exact = options.find(function(v){ return String(v).toLowerCase() === String(out).toLowerCase(); });
+		out = exact || (maskFn ? maskFn(out) : out);
+	} else {
+		out = maskFn ? maskFn(out) : out;
+	}
+	return out;
 };
 
 export default BannerWidget;
