@@ -40,7 +40,6 @@
 	"label-list-article": "List article",
 	"label-article-page": "Article page",
 	"label-prediction": "Prediction: ",
-	"ores-or-higher": "or higher",
 	"prefs-autostart": "Autostart Rater",
 	"prefs-autostart-redirects": "Autostart on redirects",
 	"prefs-autostart-namespaces": "Autostart in these namespaces",
@@ -68,6 +67,11 @@
 	"topbar-importances": "Importances",
 	"topbar-no-importance": "no importance",
 	"button-remove-all": "Remove all",
-	"button-clear-all": "Clear all"
+	"button-clear-all": "Clear all",
+	"button-remove-banner": "Remove banner",
+	"button-clear-parameters": "Clear parameters",
+	"placeholder-parameter-name": "parameter name",
+	"placeholder-parameter-value": "parameter value",
+	"label-add-parameter": "Add parameter:"
 }
 

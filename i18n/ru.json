@@ -17,7 +17,7 @@
 	"dialog-close-title": "Закрыть (и отменить изменения)",
 	"dialog-prefs": "Настройки",
 	"action-save": "Сохранить",
-	"action-preview": "Показать предварительный просмотр",
+	"action-preview": "Предварительный просмотр",
 	"action-changes": "Показать изменения",
 	"action-back": "Назад",
 	"action-update": "Обновить",
@@ -40,7 +40,6 @@
 	"label-list-article": "Список",
 	"label-article-page": "Статья",
 	"label-prediction": "Прогноз: ",
-	"ores-or-higher": "или выше",
 	"prefs-autostart": "Автозапуск Rater",
 	"prefs-autostart-redirects": "Автозапуск на перенаправлениях",
 	"prefs-autostart-namespaces": "Автозапуск в этих пространствах имен",
@@ -68,6 +67,11 @@
 	"topbar-importances": "Важность",
 	"topbar-no-importance": "без важности",
 	"button-remove-all": "Удалить всё",
-	"button-clear-all": "Очистить всё"
+	"button-clear-all": "Очистить всё",
+	"button-remove-banner": "Удалить баннер",
+	"button-clear-parameters": "Очистить параметры",
+	"placeholder-parameter-name": "имя параметра",
+	"placeholder-parameter-value": "значение параметра",
+	"label-add-parameter": "Добавить параметр:"
 }
 
