@@ -107,13 +107,7 @@ var setupRater = function(clickEvent) {
 		prop: "categories",
 		titles: subjectPage.getPrefixedText(),
 		redirects: 1,
-		clcategories: [
-			"Category:All disambiguation pages",
-			"Category:All stub articles",
-			"Category:Good articles",
-			"Category:Featured articles",
-			"Category:Featured lists"
-		]
+		clcategories: Object.values(config.subjectPageCategories)
 	}).then(response => {
 		if ( !response || !response.query || !response.query.pages ) {
 			return null;
@@ -123,15 +117,15 @@ var setupRater = function(clickEvent) {
 			return { redirectTarget };
 		}
 		const page = response.query.pages[0];
-		const hasCategory = category => page.categories && page.categories.find(cat => cat.title === "Category:"+category);
+		const hasCategory = category => page.categories && page.categories.find(cat => cat.title === category);
 		return {
 			redirectTarget,
-			disambig: hasCategory("All disambiguation pages"),
-			stubtag: hasCategory("All stub articles"),
-			isGA: hasCategory("Good articles"),
-			isFA: hasCategory("Featured articles"),
-			isFL: hasCategory("Featured lists"),
-			isList: !hasCategory("Featured lists") && /^Lists? of/.test(subjectPage.getPrefixedText())
+			disambig: hasCategory(config.subjectPageCategories.disambig),
+			stubtag: hasCategory(config.subjectPageCategories.stub),
+			isGA: hasCategory(config.subjectPageCategories.goodArticle),
+			isFA: hasCategory(config.subjectPageCategories.featuredArticle),
+			isFL: hasCategory(config.subjectPageCategories.featuredList),
+			isList: !hasCategory(config.subjectPageCategories.featuredList) && /^Lists? of/.test(subjectPage.getPrefixedText())
 		};
 	}).catch(() => null); // Failure ignored
 
@@ -165,7 +159,7 @@ var setupRater = function(clickEvent) {
 			if (!latestRevId) {
 				return false;
 			}
-			return API.getORES(latestRevId)
+			return API.getORES(latestRevId, config.ores.wiki)
 				.then(function(result) {
 					var wiki = (config && config.ores && config.ores.wiki) || "enwiki";
 					var root = result && (result[wiki] || result[Object.keys(result)[0]]);

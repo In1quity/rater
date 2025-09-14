@@ -288,7 +288,9 @@ Template.prototype.isShellTemplate = function() {
 	var mainText = this.redirectTarget
 		? this.redirectTarget.getMainText()
 		: this.getTitle().getMainText();
-	return config.shellTemplates.includes(mainText);
+	// For now, just check against the main template name
+	// TODO: Make this async to check against all aliases
+	return mainText === config.shellTemplate;
 };
 
 Template.prototype.setParamDataAndSuggestions = function() {

@@ -1,24 +1,28 @@
-import config from "./config";
 // <nowiki>
 
+// Initialize API with default user agent
 var API = new mw.Api( {
 	ajax: {
 		headers: { 
-			"Api-User-Agent": "Rater/" + config.script.version + 
-				" ( https://en.wikipedia.org/wiki/User:Evad37/Rater )"
+			"Api-User-Agent": "Rater/2.7.2 ( https://en.wikipedia.org/wiki/User:Evad37/Rater )"
 		}
 	}
 } );
 
+// Function to update API user agent when config is loaded
+API.updateUserAgent = function(version) {
+	API.defaults.ajax.headers["Api-User-Agent"] = "Rater/" + version + " ( https://en.wikipedia.org/wiki/User:Evad37/Rater )";
+};
+
 /* ---------- API for ORES ---------------------------------------------------------------------- */
-API.getORES = function(revisionID) {
-	var wiki = (config && config.ores && config.ores.wiki) || "enwiki";
+API.getORES = function(revisionID, wiki) {
+	wiki = wiki || "enwiki";
 	return $.get("https://ores.wikimedia.org/v3/scores/" + wiki + "?models=articlequality&revids=" + revisionID);
 };
 
 /* ---------- Raw wikitext ---------------------------------------------------------------------- */
 API.getRaw = function(page) {
-	return $.get("https:" + config.mw.wgServer + mw.util.getUrl(page, {action:"raw"}))
+	return $.get("https:" + mw.config.get("wgServer") + mw.util.getUrl(page, {action:"raw"}))
 		.then(function(data) {
 			if ( !data ) {
 				return $.Deferred().reject("ok-but-empty");

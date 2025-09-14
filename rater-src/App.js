@@ -1,13 +1,14 @@
 import setupRater from "./setup";
 import autoStart from "./autostart";
 import styles from "./css.js";
-import { makeErrorMsg } from "./api";
+import API, { makeErrorMsg } from "./api";
 import windowManager from "./windowManager";
 import i18n from "./i18n";
-import { loadExternalConfig } from "./config";
+import config, { loadExternalConfig } from "./config";
 // <nowiki>
 
 function startApp() {
+	console.log("[Rater] startApp called");
 	let stylesheet;
 
 	const showMainWindow = data => {
@@ -61,6 +62,7 @@ function startApp() {
 	);
 
 	// Invocation by portlet link 
+	console.log("[Rater] Adding portlet link");
 	mw.util.addPortletLink(
 		"p-cactions",
 		"#",
@@ -79,12 +81,25 @@ function startApp() {
 }
 
 // Ensure i18n is loaded before constructing UI so initial labels are localized
+console.log("[Rater] Starting initialization");
 try {
 	// Ensure external per-wiki config (if any) is loaded before i18n/UI
-	$.when(loadExternalConfig()).always(function() {
-		i18n.load().always(startApp);
+	loadExternalConfig().then(function() {
+		console.log("[Rater] External config loaded");
+		// Update API user agent with config version
+		if (config && config.script && config.script.version) {
+			API.updateUserAgent(config.script.version);
+		}
+		return i18n.load();
+	}).then(function() {
+		console.log("[Rater] i18n loaded");
+		startApp();
+	}).catch(function(e) {
+		console.log("[Rater] Error in initialization:", e);
+		startApp();
 	});
 } catch (e) {
+	console.log("[Rater] Error in initialization:", e);
 	startApp();
 }
 // </nowiki>

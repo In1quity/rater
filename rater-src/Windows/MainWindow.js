@@ -1,6 +1,6 @@
 import BannerWidget from "./Components/BannerWidget";
 import BannerListWidget from "./Components/BannerListWidget";
-import appConfig from "../config";
+import config from "../config";
 import API, { makeErrorMsg } from "../api";
 import PrefsFormWidget from "./Components/PrefsFormWidget";
 import { setPrefs as ApiSetPrefs } from "../prefs";
@@ -22,7 +22,7 @@ MainWindow.static.title = $("<span>").css({"font-weight":"normal"}).append(
 	" (",
 	$("<a>").attr({"href": mw.util.getUrl("WT:RATER"), "target": "_blank"}).text("talk"),
 	") ",
-	$("<span>").css({"font-size":"90%"}).text("v"+appConfig.script.version)
+	$("<span>").css({"font-size":"90%"}).text("v"+config.script.version)
 );
 MainWindow.static.size = "large";
 MainWindow.static.actions = [
@@ -88,7 +88,7 @@ MainWindow.prototype.initialize = function () {
 	MainWindow.super.prototype.initialize.call( this );
 
 	/* --- PREFS --- */
-	this.preferences = appConfig.defaultPrefs;
+	this.preferences = config.defaultPrefs;
 	
 	/* --- TOP BAR --- */
 	this.topBar = new TopBarWidget({
@@ -555,7 +555,7 @@ MainWindow.prototype.getTeardownProcess = function ( data ) {
 };
 
 MainWindow.prototype.setPreferences = function(prefs) {
-	this.preferences = $.extend({}, appConfig.defaultPrefs, prefs);
+	this.preferences = $.extend({}, config.defaultPrefs, prefs);
 	// Applies preferences to existing items in the window:
 	this.bannerList.setPreferences(this.preferences);
 };
@@ -566,7 +566,8 @@ MainWindow.prototype.onResetCache = function() {
 
 MainWindow.prototype.onSearchSelect = function(data) {
 	this.topBar.searchBox.pushPending();
-	var name = this.topBar.searchBox.getValue().trim();
+	// Prefer the canonical template name from the selected suggestion, if provided
+	var name = (data && data.name) || this.topBar.searchBox.getValue().trim();
 	if (!name) {
 		this.topBar.searchBox.popPending().focus();
 		return;
@@ -581,12 +582,19 @@ MainWindow.prototype.onSearchSelect = function(data) {
 		return OO.ui.alert("There is already a {{" + name + "}} banner").then(this.searchBox.focus());
 	}
 
-	// Confirmation required for banners missing WikiProject from name, and for uncreated disambiguation talk pages
+	// If user typed a short form without a recognized prefix, try to auto-prepend the first configured prefix
 	var confirmText;
-	if (!/^[Ww](?:P|iki[Pp]roject)/.test(name)) {
-		confirmText = new OO.ui.HtmlSnippet(
-			"{{" + mw.html.escape(name) + "}} is not a recognised WikiProject banner.<br/>Do you want to continue?"
-		);
+	var hasValidPrefix = config.bannerNamePrefixes.some(prefix => name.toLowerCase().startsWith(prefix.toLowerCase()));
+	if (!hasValidPrefix) {
+		var prefixes = config.bannerNamePrefixes || [];
+		if (prefixes.length) {
+			name = prefixes[0] + name; // auto-expand to full banner name
+			hasValidPrefix = true;
+		} else {
+			confirmText = new OO.ui.HtmlSnippet(
+				"{{" + mw.html.escape(name) + "}} is not a recognised WikiProject banner.<br/>Do you want to continue?"
+			);
+		}
 	} else if (name === "WikiProject Disambiguation" && $("#ca-talk.new").length !== 0 && this.bannerList.items.length === 0) {
 		// eslint-disable-next-line no-useless-escape
 		confirmText = "New talk pages shouldn't be created if they will only contain the \{\{WikiProject Disambiguation\}\} banner. Continue?";
@@ -751,7 +759,7 @@ MainWindow.prototype.makeEditSummary = function() {
 		: (someClassesChanged && overallClass) || (someImportancesChanged && overallImportance) || "";
 	if (overallRating) { overallRating = " (" + overallRating + ")"; }
 
-	return `Assessment${overallRating}: ${[...editedBanners, ...newBanners, ...removedBanners].join(", ")}${appConfig.script.advert}`;
+	return `Assessment${overallRating}: ${[...editedBanners, ...newBanners, ...removedBanners].join(", ")}${config.script.advert}`;
 };
 
 export default MainWindow;

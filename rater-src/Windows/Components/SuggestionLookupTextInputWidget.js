@@ -22,7 +22,8 @@ SuggestionLookupTextInputWidget.prototype.setSuggestions = function(suggestions)
 
 // Returns data, as a resolution to a promise, to be passed to #getLookupMenuOptionsFromData
 SuggestionLookupTextInputWidget.prototype.getLookupRequest = function () {
-	var deferred = $.Deferred().resolve(new RegExp("\\b" + mw.util.escapeRegExp(this.getValue()), "i"));
+	// Use simple case-insensitive substring match (works with non-Latin scripts)
+	var deferred = $.Deferred().resolve(new RegExp(mw.util.escapeRegExp(this.getValue()), "i"));
 	return deferred.promise( { abort: function () {} } );
 };
 
@@ -34,7 +35,10 @@ SuggestionLookupTextInputWidget.prototype.getLookupCacheDataFromResponse = funct
 // Is passed data from #getLookupRequest, returns an array of menu item widgets 
 SuggestionLookupTextInputWidget.prototype.getLookupMenuOptionsFromData = function ( pattern ) {
 	var labelMatchesInputVal = function(suggestionItem) {
-		return pattern.test(suggestionItem.label) || ( !suggestionItem.label && pattern.test(suggestionItem.data) );
+		var label = suggestionItem && suggestionItem.label;
+		var data = suggestionItem && suggestionItem.data;
+		var rawName = (data && typeof data === "object" && data.name) ? data.name : data;
+		return (label && pattern.test(label)) || (rawName && pattern.test(rawName));
 	};
 	var makeMenuOptionWidget = function(optionItem) {
 		return new OO.ui.MenuOptionWidget( {

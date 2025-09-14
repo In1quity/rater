@@ -150,34 +150,28 @@ var config = {
 			]
 		}
 	},
-	shellTemplates: [
-		"WikiProject banner shell",
-		"WikiProjectBanners",
-		"WikiProject Banners",
-		"WPB",
-		"WPBS",
-		"Wikiprojectbannershell",
-		"WikiProject Banner Shell",
-		"Wpb",
-		"WPBannerShell",
-		"Wpbs",
-		"Wikiprojectbanners",
-		"WP Banner Shell",
-		"WP banner shell",
-		"Bannershell",
-		"Wikiproject banner shell",
-		"WikiProject Banners Shell",
-		"WikiProjectBanner Shell",
-		"WikiProjectBannerShell",
-		"WikiProject BannerShell",
-		"WikiprojectBannerShell",
-		"WikiProject banner shell/redirect",
-		"WikiProject Shell",
-		"Banner shell",
-		"Scope shell",
-		"Project shell",
-		"WikiProject banner"
+	categories: {
+		withRatings: "Category:WikiProject banners with quality assessment",
+		withoutRatings: "Category:WikiProject banners without quality assessment", 
+		wrappers: "Category:WikiProject banner wrapper templates",
+		notWPBM: "Category:WikiProject banner templates not based on WPBannerMeta",
+		inactive: "Category:Inactive WikiProject banners",
+		wir: "Category:Wrapper templates for WikiProject Women in Red"
+	},
+	subjectPageCategories: {
+		disambig: "Category:All disambiguation pages",
+		stub: "Category:All stub articles",
+		goodArticle: "Category:Good articles",
+		featuredArticle: "Category:Featured articles",
+		featuredList: "Category:Featured lists"
+	},
+	// Array of valid banner name prefixes (case-insensitive)
+	bannerNamePrefixes: [
+		"WP ",
+		"WikiProject ",
 	],
+	// Main shell template name - aliases will be fetched via API
+	shellTemplate: "WikiProject banner shell",
 	defaultParameterData: {
 		"auto": {
 			"label": {
@@ -285,6 +279,58 @@ var loadExternalConfig = function() {
 	return $.Deferred().resolve().promise();
 };
 
+// Cache for shell template aliases
+var shellTemplateAliases = null;
+
+/**
+ * Get shell template aliases via API (cached)
+ * @param {Object} api - MediaWiki API instance
+ * @returns {Promise<Array<string>>} Array of shell template names including aliases
+ */
+function getShellTemplateAliases(api) {
+	if (shellTemplateAliases) {
+		return Promise.resolve(shellTemplateAliases);
+	}
+	
+	const mainTemplate = config.shellTemplate;
+	if (!mainTemplate) {
+		return Promise.resolve([]);
+	}
+	
+	// Step 1: resolve canonical title (follow redirects)
+	return api.get({ 
+		action: "query", 
+		redirects: 1, 
+		titles: "Template:" + mainTemplate, 
+		format: "json", 
+		formatversion: 2 
+	}).then(function(data) {
+		const page = (data && data.query && data.query.pages && data.query.pages[0]) || {};
+		const canonical = page.title ? page.title.replace(/^Template:/, "") : mainTemplate;
+		
+		// Step 2: fetch all redirects that point to canonical
+		return api.get({ 
+			action: "query", 
+			format: "json", 
+			formatversion: 2, 
+			prop: "redirects", 
+			titles: "Template:" + canonical 
+		}).then(function(d2) {
+			const p = (d2 && d2.query && d2.query.pages && d2.query.pages[0]) || {};
+			const redirects = (p.redirects || []).map(function(r) { 
+				return r.title ? r.title.replace(/^Template:/, "") : ""; 
+			}).filter(Boolean);
+			
+			shellTemplateAliases = [canonical].concat(redirects);
+			return shellTemplateAliases;
+		});
+	}).catch(function() {
+		// Fallback to main template only
+		shellTemplateAliases = [mainTemplate];
+		return shellTemplateAliases;
+	});
+}
+
 export default config;
-export { loadExternalConfig };
+export { loadExternalConfig, getShellTemplateAliases };
 // </nowiki>

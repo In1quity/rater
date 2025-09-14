@@ -66,9 +66,11 @@ BannerListWidget.prototype.syncShellTemplateWithBiographyBanner = function( biog
 	);
 	if (!biographyBanner) return;
 
-	const bannerShellTemplate = this.items.find(
-		banner => banner.mainText === config.shellTemplates[0] || banner.redirectTargetMainText === config.shellTemplates[0]
-	);
+	// Find shell template using aliases
+	const bannerShellTemplate = this.items.find(banner => {
+		const mainText = banner.mainText || banner.redirectTargetMainText;
+		return mainText === config.shellTemplate;
+	});
 	if (!bannerShellTemplate) {
 		return;
 	}
@@ -117,7 +119,7 @@ BannerListWidget.prototype.addShellTemplateIfNeeeded = function () {
 		!this.items.some(banner => banner.isShellTemplate)
 	) {
 		BannerWidget.newFromTemplateName(
-			config.shellTemplates[0],
+			config.shellTemplate,
 			{withoutRatings: true},
 			{preferences: this.preferences, isArticle: this.pageInfo.isArticle}
 		).then(shellBannerWidget => {

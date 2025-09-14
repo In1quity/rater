@@ -1,7 +1,11 @@
-import API, { makeErrorMsg } from "./api";
-import { isAfterDate } from "./util";
+import API from "./api";
+import { isAfterDate, uniqueArray } from "./util";
 import * as cache from "./cache";
+import config from "./config";
 // <nowiki>
+
+// Debug logger (enable with window.RATER_DEBUG = true)
+var dlog = function(){ try { if (window && window.RATER_DEBUG) { console.log.apply(console, ["[Rater:getBanners]"].concat([].slice.call(arguments))); } } catch(e){ /* ignore */ } };
 
 var cacheBanners = function(banners) {
 	cache.write("banners", banners, 2, 60);
@@ -15,103 +19,91 @@ var cacheBanners = function(banners) {
 var getListOfBannersFromApi = function() {
 
 	var finishedPromise = $.Deferred();
+	try { dlog("Start getListOfBannersFromApi"); } catch(e){ /* ignore */ }
 
-	var querySkeleton = {
-		action: "query",
-		format: "json",
-		list: "categorymembers",
-		cmprop: "title",
-		cmnamespace: "10",
-		cmlimit: "500"
-	};
+	// Localized Template namespace prefix (e.g., "Template:", "Шаблон:")
+	var templateNsName = (config.mw && config.mw.wgFormattedNamespaces && (config.mw.wgFormattedNamespaces[10] || "Template")) || "Template";
+	var templateNsPrefix = String(templateNsName) + ":";
+	try { dlog("Using template NS:", templateNsName); } catch(e){ /* ignore */ }
 
-	var categories = [
-		{
-			title: "Category:WikiProject banners with quality assessment",
-			abbreviation: "withRatings",
-			banners: [],
-			processed: $.Deferred()
-		},
-		{
-			title: "Category:WikiProject banners without quality assessment",
-			abbreviation: "withoutRatings",
-			banners: [],
-			processed: $.Deferred()
-		},
-		{
-			title: "Category:WikiProject banner wrapper templates",
-			abbreviation: "wrappers",
-			banners: [],
-			processed: $.Deferred()
-		},
-		{
-			title: "Category:WikiProject banner templates not based on WPBannerMeta",
-			abbreviation: "notWPBM",
-			banners: [],
-			processed: $.Deferred()
-		},
-		{
-			title: "Category:Inactive WikiProject banners",
-			abbreviation: "inactive",
-			banners: [],
-			processed: $.Deferred()
-		},
-		{
-			title: "Category:Wrapper templates for WikiProject Women in Red",
-			abbreviation: "wir",
-			banners: [],
-			processed: $.Deferred()
+	var categories = Object.keys(config.categories)
+		.map(function(abbreviation){
+			return {
+				title: config.categories[abbreviation],
+				abbreviation: abbreviation,
+				banners: [],
+				processed: $.Deferred()
+			};
+		})
+		// Filter out categories without titles to avoid API errors on other wikis
+		.filter(function(cat){ return !!cat.title; });
+	try { dlog("Root categories:", categories.map(function(c){return c.title+" ("+c.abbreviation+")";})); } catch(e){ /* ignore */ }
+
+	// Recursively collect all template pages (ns 10) from a category and its subcategories
+	var collectTemplatesRecursively = function(rootCategoryTitle) {
+		var outTitles = [];
+		var queue = [];
+		var seen = Object.create(null);
+		if (rootCategoryTitle) { queue.push(rootCategoryTitle); }
+
+		function queryOne(catTitle, cont) {
+			var params = {
+				action: "query",
+				format: "json",
+				list: "categorymembers",
+				cmtitle: catTitle,
+				cmprop: "title|ns",
+				cmtype: "page|subcat",
+				cmlimit: "500"
+			};
+			if (cont) { $.extend(params, cont); }
+			return API.get(params).then(function(result){
+				try { dlog("Fetched:", catTitle, "members:", (result && result.query && result.query.categorymembers && result.query.categorymembers.length) || 0, result && result.continue ? "(cont)" : ""); } catch(e){ /* ignore */ }
+				var members = (result && result.query && result.query.categorymembers) || [];
+				members.forEach(function(m){
+					var title = String(m && m.title || "");
+					if (m && m.ns === 10) {
+						if (title.indexOf(templateNsPrefix) === 0) { title = title.slice(templateNsPrefix.length); }
+						else if (title.indexOf("Template:") === 0) { title = title.slice("Template:".length); }
+						outTitles.push(title);
+					} else if (m && m.ns === 14 && !seen[title]) {
+						seen[title] = true;
+						queue.push(title);
+					}
+				});
+				if (result && result.continue) { return queryOne(catTitle, result.continue); }
+			});
 		}
-	];
 
-	var processQuery = function(result, catIndex) {
-		if ( !result.query || !result.query.categorymembers ) {
-			// No results
-			// TODO: error or warning ********
-			finishedPromise.reject();
-			return;
+		function step() {
+			if (!queue.length) {
+				var list = uniqueArray(outTitles);
+				try { dlog("Category traversal finished. Unique templates:", list.length); } catch(e){ /* ignore */ }
+				return $.Deferred().resolve(list).promise();
+			}
+			var next = queue.shift();
+			if (seen[next]) { return step(); }
+			seen[next] = true;
+			try { dlog("Traverse subcategory:", next, "queue:", queue.length); } catch(e){ /* ignore */ }
+			return queryOne(next).then(step, step);
 		}
-		
-		// Gather titles into array - excluding "Template:" prefix
-		var resultTitles = result.query.categorymembers.map(function(info) {
-			return info.title.slice(9);
-		});
-		Array.prototype.push.apply(categories[catIndex].banners, resultTitles);
-		
-		// Continue query if needed
-		if ( result.continue ) {
-			doApiQuery($.extend(categories[catIndex].query, result.continue), catIndex);
-			return;
-		}
-		
-		categories[catIndex].processed.resolve();
-	};
 
-	var doApiQuery = function(q, catIndex) {
-		API.get( q )
-			.done( function(result) {
-				processQuery(result, catIndex);
-			} )
-			.fail( function(code, jqxhr) {
-				console.warn("[Rater] " + makeErrorMsg(code, jqxhr, "Could not retrieve pages from [[:" + q.cmtitle + "]]"));
-				finishedPromise.reject();
-			} );
+		return step();
 	};
 	
 	categories.forEach(function(cat, index, arr) {
-		cat.query = $.extend( { "cmtitle":cat.title }, querySkeleton );
 		$.when( arr[index-1] && arr[index-1].processed || true ).then(function(){
-			doApiQuery(cat.query, index);
+			collectTemplatesRecursively(cat.title)
+				.then(function(titles){ categories[index].banners = titles || []; try{ dlog("Collected for", cat.title, ":", (titles||[]).length);}catch(e){ /* ignore */ } })
+				.always(function(){ categories[index].processed.resolve(); });
 		});
 	});
 	
 	categories[categories.length-1].processed.then(function(){
-		let banners = {};
-		categories.forEach(catObject => {
-			banners[catObject.abbreviation] = catObject.banners;
-		});
-		
-		finishedPromise.resolve(banners);
+		var base = { withRatings: [], withoutRatings: [], wrappers: [], notWPBM: [], inactive: [], wir: [] };
+		categories.forEach(function(catObject){ base[catObject.abbreviation] = catObject.banners; });
+		try { dlog("Final groups:", Object.keys(base).map(function(k){return k+":"+(base[k]||[]).length;})); } catch(e){ /* ignore */ }
+		finishedPromise.resolve(base);
 	});
 	
 	return finishedPromise;
@@ -129,12 +121,15 @@ var getBannersFromCache = function() {
 		!cachedBanners.value ||
 		!cachedBanners.staleDate
 	) {
+		try { dlog("Cache miss: banners"); } catch(e){ /* ignore */ }
 		return $.Deferred().reject();
 	}
 	if ( isAfterDate(cachedBanners.staleDate) ) {
 		// Update in the background; still use old list until then  
+		try { dlog("Cache stale: refreshing in background"); } catch(e){ /* ignore */ }
 		getListOfBannersFromApi().then(cacheBanners);
 	}
+	try { dlog("Cache hit: banners"); } catch(e){ /* ignore */ }
 	return $.Deferred().resolve(cachedBanners.value);
 };
 

@@ -1,23 +1,34 @@
-import appConfig from "../../config";
+import config from "../../config";
 import i18n from "../../i18n";
 import SuggestionLookupTextInputWidget from "./SuggestionLookupTextInputWidget";
 import {getBannerNames} from "../../getBanners";
 // <nowiki>
 
-function TopBarWidget( config ) {
+// Helper function to remove the first matching prefix from banner name
+function removeBannerPrefix(bannerName) {
+	const prefixes = config.bannerNamePrefixes || [];
+	for (const prefix of prefixes) {
+		if (bannerName.toLowerCase().startsWith(prefix.toLowerCase())) {
+			return bannerName.substring(prefix.length);
+		}
+	}
+	return bannerName;
+}
+
+function TopBarWidget( opts ) {
 	// Configuration initialization
-	config = $.extend(
+	opts = $.extend(
 		{
 			expanded: false,
 			framed: false,
 			padded: false
 		},
-		config || {}
+		opts || {}
 	);
 	// Call parent constructor
-	TopBarWidget.super.call( this, config );
-	this.$overlay = config.$overlay;
-    
+	TopBarWidget.super.call( this, opts );
+	this.$overlay = opts.$overlay;
+	
 	// Search box
 	this.searchBox = new SuggestionLookupTextInputWidget( {
 		placeholder: i18n.t("topbar-add-wikiproject"),
@@ -27,33 +38,33 @@ function TopBarWidget( config ) {
 	getBannerNames()
 		.then(banners => [
 			...banners.withRatings.map(bannerName => ({
-				label: bannerName.replace("WikiProject ", ""),
+				label: removeBannerPrefix(bannerName),
 				data: {
 					name: bannerName
 				}
 			})),
 			...banners.withoutRatings.map(bannerName => ({
-				label: bannerName.replace("WikiProject ", ""),
+				label: removeBannerPrefix(bannerName),
 				data: {
 					name: bannerName,
 					withoutRatings: true
 				}
 			})),
 			...banners.wrappers.map(bannerName => ({
-				label: bannerName.replace("WikiProject ", "") + " [template wrapper]",
+				label: removeBannerPrefix(bannerName) + " [template wrapper]",
 				data: {
 					name: bannerName,
 					wrapper: true
 				}
 			})),
 			...banners.notWPBM.map(bannerName => ({
-				label: bannerName.replace("WikiProject ", ""),
+				label: removeBannerPrefix(bannerName),
 				data: {
 					name: bannerName
 				}
 			})),
 			...banners.inactive.map(bannerName => ({
-				label: bannerName.replace("WikiProject ", "") + " [inactive]",
+				label: removeBannerPrefix(bannerName) + " [inactive]",
 				data: {
 					name: bannerName,
 					withoutRatings: true
@@ -68,7 +79,7 @@ function TopBarWidget( config ) {
 			}))
 		])
 		.then(bannerOptions => this.searchBox.setSuggestions(bannerOptions));
-    
+	
 	// Add button
 	this.addBannerButton = new OO.ui.ButtonWidget( {
 		icon: "add",
@@ -94,7 +105,7 @@ function TopBarWidget( config ) {
 					data: {class: null},
 					label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">(" + i18n.t("topbar-no-class") + ")</span>")
 				} ),
-				...appConfig.bannerDefaults.classes.map(classname => new OO.ui.MenuOptionWidget( {
+				...config.bannerDefaults.classes.map(classname => new OO.ui.MenuOptionWidget( {
 					data: {class: classname},
 					label: classname
 				} )
@@ -106,7 +117,7 @@ function TopBarWidget( config ) {
 					data: {importance: null},
 					label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">(" + i18n.t("topbar-no-importance") + ")</span>")
 				} ),
-				...appConfig.bannerDefaults.importances.map(importance => new OO.ui.MenuOptionWidget( {
+				...config.bannerDefaults.importances.map(importance => new OO.ui.MenuOptionWidget( {
 					data: {importance: importance},
 					label: importance
 				} )
@@ -159,7 +170,7 @@ function TopBarWidget( config ) {
 		);
 
 	/* --- Event handling --- */
-    
+	
 	this.searchBox.connect(this, {
 		"enter": "onSearchSelect",
 		"choose": "onSearchSelect"
