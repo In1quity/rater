@@ -1,4 +1,4 @@
-import config from "../../config";
+import config from '../../config';
 // <nowiki>
 
 function PrefsFormWidget( config ) {
@@ -7,148 +7,147 @@ function PrefsFormWidget( config ) {
 	// Call parent constructor
 	PrefsFormWidget.super.call( this, config );
 
-	this.$element.addClass("rater-prefsFormWidget");
+	this.$element.addClass( 'rater-prefsFormWidget' );
 
-	this.layout =  new OO.ui.FieldsetLayout( {
-		label: "Preferences",
+	this.layout = new OO.ui.FieldsetLayout( {
+		label: 'Preferences',
 		$element: this.$element
 	} );
 
 	this.preferences = {
-		"autostart": {
+		autostart: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: "Autostart Rater"
+			label: 'Autostart Rater'
 		},
-		"autostartRedirects": {
+		autostartRedirects: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: "Autostart on redirects"
+			label: 'Autostart on redirects'
 		},
-		"autostartNamespaces": {
+		autostartNamespaces: {
 			input: new mw.widgets.NamespacesMultiselectWidget(),
-			label: "Autostart in these namespaces"
+			label: 'Autostart in these namespaces'
 		},
-		"bypassRedirects": {
+		bypassRedirects: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: "Bypass redirects to banners"
+			label: 'Bypass redirects to banners'
 		},
-		"autofillClassFromOthers":  {
+		autofillClassFromOthers: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: "Autofill class from other banners"
+			label: 'Autofill class from other banners'
 		},
-		"autofillClassFromOres": {
+		autofillClassFromOres: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: "Autofill class based on ORES prediction"
+			label: 'Autofill class based on ORES prediction'
 		},
-		"autofillImportance": {
+		autofillImportance: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: "Autofill low importance"
+			label: 'Autofill low importance'
 		},
-		"collapseParamsLowerLimit": {
-			input: new OO.ui.NumberInputWidget( { "min": 1 } ),
-			label: "Minimum number of parameters to show uncollapsed"
+		collapseParamsLowerLimit: {
+			input: new OO.ui.NumberInputWidget( { min: 1 } ),
+			label: 'Minimum number of parameters to show uncollapsed'
 		},
-		"watchlist": {
+		watchlist: {
 			input: new OO.ui.ButtonSelectWidget( {
 				items: [
 					new OO.ui.ButtonOptionWidget( {
-						data: "preferences",
-						label: "Default",
-						title: "Uses the same setting as if you manually edited the page, as per Special:Preferences"
+						data: 'preferences',
+						label: 'Default',
+						title: 'Uses the same setting as if you manually edited the page, as per Special:Preferences'
 					} ),
 					new OO.ui.ButtonOptionWidget( {
-						data: "watch",
-						label: "Always",
-						title: "Always add pages Rater edits to your watchlist"
+						data: 'watch',
+						label: 'Always',
+						title: 'Always add pages Rater edits to your watchlist'
 					} ),
 					new OO.ui.ButtonOptionWidget( {
-						data: "nochange",
-						label: "Never",
-						title: "Never add pages Rater edit to your watchlist"
-					} ),
+						data: 'nochange',
+						label: 'Never',
+						title: 'Never add pages Rater edit to your watchlist'
+					} )
 				]
-			}).selectItemByData("preferences"),
-			label: "Add edited pages to watchlist"
+			} ).selectItemByData( 'preferences' ),
+			label: 'Add edited pages to watchlist'
 		},
-		"resetCache": {
+		resetCache: {
 			input: new OO.ui.ButtonWidget( {
-				label: "Reset cache",
-				title: "Remove cached data, including list of WikiProjects and template parameters",
-				flags: ["destructive"]
+				label: 'Reset cache',
+				title: 'Remove cached data, including list of WikiProjects and template parameters',
+				flags: [ 'destructive' ]
 			} )
 		}
 	};
 
-	for (let prefName in this.preferences ) {
-		this.layout.addItems([
-			new OO.ui.FieldLayout( this.preferences[prefName].input, {
-				label: this.preferences[prefName].label,
-				align: "right"
+	for ( const prefName in this.preferences ) {
+		this.layout.addItems( [
+			new OO.ui.FieldLayout( this.preferences[ prefName ].input, {
+				label: this.preferences[ prefName ].label,
+				align: 'right'
 			} )
-		]);
+		] );
 	}
 
-	this.preferences.resetCache.input.connect(this, {"click": "onResetCacheClick"});
+	this.preferences.resetCache.input.connect( this, { click: 'onResetCacheClick' } );
 }
 OO.inheritClass( PrefsFormWidget, OO.ui.Widget );
 
-PrefsFormWidget.prototype.setPrefValues = function(prefs) {
-	for (let prefName in prefs ) {
-		let value = prefs[prefName];
-		let input = this.preferences[prefName] && this.preferences[prefName].input;
-		switch (input && input.constructor.name) {
-		case "OoUiButtonSelectWidget":
-			input.selectItemByData(value);
-			break;
-		case "OoUiNumberInputWidget":
-		case "OoUiToggleSwitchWidget":
-			input.setValue(value);
-			break;
-		case "MwWidgetsNamespacesMultiselectWidget":
-			input.clearItems();
-			value.forEach(ns =>
-				input.addTag(
+PrefsFormWidget.prototype.setPrefValues = function ( prefs ) {
+	for ( const prefName in prefs ) {
+		const value = prefs[ prefName ];
+		const input = this.preferences[ prefName ] && this.preferences[ prefName ].input;
+		switch ( input && input.constructor.name ) {
+			case 'OoUiButtonSelectWidget':
+				input.selectItemByData( value );
+				break;
+			case 'OoUiNumberInputWidget':
+			case 'OoUiToggleSwitchWidget':
+				input.setValue( value );
+				break;
+			case 'MwWidgetsNamespacesMultiselectWidget':
+				input.clearItems();
+				value.forEach( ( ns ) => input.addTag(
 					ns.toString(),
-					ns === 0
-						? "(Main)"
-						: config.mw.wgFormattedNamespaces[ns]
+					ns === 0 ?
+						'(Main)' :
+						config.mw.wgFormattedNamespaces[ ns ]
 				)
-			);
-			break;
+				);
+				break;
 		}
 	}
 };
 
-PrefsFormWidget.prototype.getPrefs = function() {
-	var prefs = {};
-	for (let prefName in this.preferences ) {
-		let input = this.preferences[prefName].input;
+PrefsFormWidget.prototype.getPrefs = function () {
+	const prefs = {};
+	for ( const prefName in this.preferences ) {
+		const input = this.preferences[ prefName ].input;
 		let value;
-		switch (input.constructor.name) {
-		case "OoUiButtonSelectWidget":
-			value = input.findSelectedItem().getData();
-			break;
-		case "OoUiToggleSwitchWidget":
-			value = input.getValue();
-			break;
-		case "OoUiNumberInputWidget":
-			value = Number(input.getValue()); // widget uses strings, not numbers!
-			break;
-		case "MwWidgetsNamespacesMultiselectWidget":
-			value = input.getValue().map(Number); // widget uses strings, not numbers!
-			break;
+		switch ( input.constructor.name ) {
+			case 'OoUiButtonSelectWidget':
+				value = input.findSelectedItem().getData();
+				break;
+			case 'OoUiToggleSwitchWidget':
+				value = input.getValue();
+				break;
+			case 'OoUiNumberInputWidget':
+				value = Number( input.getValue() ); // widget uses strings, not numbers!
+				break;
+			case 'MwWidgetsNamespacesMultiselectWidget':
+				value = input.getValue().map( Number ); // widget uses strings, not numbers!
+				break;
 		}
-		prefs[prefName] = value;
+		prefs[ prefName ] = value;
 	}
 	return prefs;
 };
 
-PrefsFormWidget.prototype.onResetCacheClick = function() {
-	OO.ui.confirm("After reseting cache, Rater will close and restart. Any changes made will be discarded.")
-		.then(confirmed => {
-			if (confirmed) { 
-				this.emit("resetCache");
+PrefsFormWidget.prototype.onResetCacheClick = function () {
+	OO.ui.confirm( 'After reseting cache, Rater will close and restart. Any changes made will be discarded.' )
+		.then( ( confirmed ) => {
+			if ( confirmed ) {
+				this.emit( 'resetCache' );
 			}
-		});
+		} );
 };
 
 export default PrefsFormWidget;

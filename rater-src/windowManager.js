@@ -1,15 +1,15 @@
-import LoadDialog from "./Windows/LoadDialog";
-import MainWindow from "./Windows/MainWindow";
+import LoadDialog from './Windows/LoadDialog';
+import MainWindow from './Windows/MainWindow';
 // <nowiki>
 
-var factory = new OO.Factory();
+const factory = new OO.Factory();
 
 // Register window constructors with the factory.
-factory.register(LoadDialog);
-factory.register(MainWindow);
+factory.register( LoadDialog );
+factory.register( MainWindow );
 
-var manager = new OO.ui.WindowManager( {
-	"factory": factory
+const manager = new OO.ui.WindowManager( {
+	factory: factory
 } );
 $( document.body ).append( manager.$element );
 
