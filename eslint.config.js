@@ -3,9 +3,13 @@ import security from "eslint-plugin-security";
 import esx from "eslint-plugin-es-x";
 import jsdoc from "eslint-plugin-jsdoc";
 import stylistic from "@stylistic/eslint-plugin";
+import json from "@eslint/json";
+import markdown from "@eslint/markdown";
 
 export default [
 	{
+		name: "rater/base",
+		files: ["**/*.js"],
 		plugins: { unicorn, security, "es-x": esx, jsdoc, "@stylistic": stylistic },
 		languageOptions: {
 			ecmaVersion: 2017,
@@ -33,6 +37,8 @@ export default [
 			}
 		},
 		settings: { "es-x": { aggressive: true } },
+		linterOptions: { reportUnusedDisableDirectives: "warn" },
+		ignores: ["!.*.*", ".*/*", "node_modules/*"],
 			rules: {
 			// Wikimedia common rules
 				"@stylistic/array-bracket-spacing": ["error", "always"],
@@ -165,9 +171,27 @@ export default [
 
 			// ES2017 specific
 			"no-await-in-loop": "error",
-			"require-atomic-updates": "error",
-
-			// No Prettier integration for JS formatting
+			"require-atomic-updates": "error"
 		}
-}
+	},
+	{
+		name: "rater/json",
+		files: ["**/*.json", "**/*.jsonc", "**/*.json5"],
+		plugins: { json, security },
+		language: "json/json",
+		rules: {
+			"json/no-duplicate-keys": "error",
+			"indent": ["error", "tab"],
+			"max-len": "off",
+			"strict": "off",
+			"security/detect-bidi-characters": "off"
+		}
+	},
+	{
+		name: "rater/markdown",
+		files: ["**/*.md"],
+		plugins: { markdown },
+		language: "markdown/commonmark",
+		rules: { "markdown/no-html": "error" }
+	}
 ];
