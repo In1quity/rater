@@ -1,5 +1,5 @@
-import config from "../../config";
-import i18n from "../../i18n";
+import config from '../../config';
+import i18n from '../../i18n';
 // <nowiki>
 
 function PrefsFormWidget( config ) {
@@ -8,148 +8,147 @@ function PrefsFormWidget( config ) {
 	// Call parent constructor
 	PrefsFormWidget.super.call( this, config );
 
-	this.$element.addClass("rater-prefsFormWidget");
+	this.$element.addClass( 'rater-prefsFormWidget' );
 
-	this.layout =  new OO.ui.FieldsetLayout( {
-		label: i18n.t("dialog-prefs"),
+	this.layout = new OO.ui.FieldsetLayout( {
+		label: i18n.t( 'dialog-prefs' ),
 		$element: this.$element
 	} );
 
 	this.preferences = {
-		"autostart": {
+		autostart: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: i18n.t("prefs-autostart")
+			label: i18n.t( 'prefs-autostart' )
 		},
-		"autostartRedirects": {
+		autostartRedirects: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: i18n.t("prefs-autostart-redirects")
+			label: i18n.t( 'prefs-autostart-redirects' )
 		},
-		"autostartNamespaces": {
+		autostartNamespaces: {
 			input: new mw.widgets.NamespacesMultiselectWidget(),
-			label: i18n.t("prefs-autostart-namespaces")
+			label: i18n.t( 'prefs-autostart-namespaces' )
 		},
-		"bypassRedirects": {
+		bypassRedirects: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: i18n.t("prefs-bypass-redirects")
+			label: i18n.t( 'prefs-bypass-redirects' )
 		},
-		"autofillClassFromOthers":  {
+		autofillClassFromOthers: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: i18n.t("prefs-autofill-class-others")
+			label: i18n.t( 'prefs-autofill-class-others' )
 		},
-		"autofillClassFromOres": {
+		autofillClassFromOres: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: i18n.t("prefs-autofill-class-ores")
+			label: i18n.t( 'prefs-autofill-class-ores' )
 		},
-		"autofillImportance": {
+		autofillImportance: {
 			input: new OO.ui.ToggleSwitchWidget(),
-			label: i18n.t("prefs-autofill-importance")
+			label: i18n.t( 'prefs-autofill-importance' )
 		},
-		"collapseParamsLowerLimit": {
-			input: new OO.ui.NumberInputWidget( { "min": 1 } ),
-			label: i18n.t("prefs-min-params")
+		collapseParamsLowerLimit: {
+			input: new OO.ui.NumberInputWidget( { min: 1 } ),
+			label: i18n.t( 'prefs-min-params' )
 		},
-		"watchlist": {
+		watchlist: {
 			input: new OO.ui.ButtonSelectWidget( {
 				items: [
 					new OO.ui.ButtonOptionWidget( {
-						data: "preferences",
-						label: i18n.t("prefs-watchlist-default"),
-						title: i18n.t("prefs-watchlist-default-title")
+						data: 'preferences',
+						label: i18n.t( 'prefs-watchlist-default' ),
+						title: i18n.t( 'prefs-watchlist-default-title' )
 					} ),
 					new OO.ui.ButtonOptionWidget( {
-						data: "watch",
-						label: i18n.t("prefs-watchlist-always"),
-						title: i18n.t("prefs-watchlist-always-title")
+						data: 'watch',
+						label: i18n.t( 'prefs-watchlist-always' ),
+						title: i18n.t( 'prefs-watchlist-always-title' )
 					} ),
 					new OO.ui.ButtonOptionWidget( {
-						data: "nochange",
-						label: i18n.t("prefs-watchlist-never"),
-						title: i18n.t("prefs-watchlist-never-title")
-					} ),
+						data: 'nochange',
+						label: i18n.t( 'prefs-watchlist-never' ),
+						title: i18n.t( 'prefs-watchlist-never-title' )
+					} )
 				]
-			}).selectItemByData("preferences"),
-			label: i18n.t("prefs-watchlist-label")
+			} ).selectItemByData( 'preferences' ),
+			label: i18n.t( 'prefs-watchlist-label' )
 		},
-		"resetCache": {
+		resetCache: {
 			input: new OO.ui.ButtonWidget( {
-				label: i18n.t("prefs-reset-cache"),
-				title: i18n.t("prefs-reset-cache-title"),
-				flags: ["destructive"]
+				label: i18n.t( 'prefs-reset-cache' ),
+				title: i18n.t( 'prefs-reset-cache-title' ),
+				flags: [ 'destructive' ]
 			} )
 		}
 	};
 
-	for (let prefName in this.preferences ) {
-		this.layout.addItems([
-			new OO.ui.FieldLayout( this.preferences[prefName].input, {
-				label: this.preferences[prefName].label,
-				align: "right"
+	for ( const prefName in this.preferences ) {
+		this.layout.addItems( [
+			new OO.ui.FieldLayout( this.preferences[ prefName ].input, {
+				label: this.preferences[ prefName ].label,
+				align: 'right'
 			} )
-		]);
+		] );
 	}
 
-	this.preferences.resetCache.input.connect(this, {"click": "onResetCacheClick"});
+	this.preferences.resetCache.input.connect( this, { click: 'onResetCacheClick' } );
 }
 OO.inheritClass( PrefsFormWidget, OO.ui.Widget );
 
-PrefsFormWidget.prototype.setPrefValues = function(prefs) {
-	for (let prefName in prefs ) {
-		let value = prefs[prefName];
-		let input = this.preferences[prefName] && this.preferences[prefName].input;
-		switch (input && input.constructor.name) {
-		case "OoUiButtonSelectWidget":
-			input.selectItemByData(value);
-			break;
-		case "OoUiNumberInputWidget":
-		case "OoUiToggleSwitchWidget":
-			input.setValue(value);
-			break;
-		case "MwWidgetsNamespacesMultiselectWidget":
-			input.clearItems();
-			value.forEach(ns =>
-				input.addTag(
+PrefsFormWidget.prototype.setPrefValues = function ( prefs ) {
+	for ( const prefName in prefs ) {
+		const value = prefs[ prefName ];
+		const input = this.preferences[ prefName ] && this.preferences[ prefName ].input;
+		switch ( input && input.constructor.name ) {
+			case 'OoUiButtonSelectWidget':
+				input.selectItemByData( value );
+				break;
+			case 'OoUiNumberInputWidget':
+			case 'OoUiToggleSwitchWidget':
+				input.setValue( value );
+				break;
+			case 'MwWidgetsNamespacesMultiselectWidget':
+				input.clearItems();
+				value.forEach( ( ns ) => input.addTag(
 					ns.toString(),
-					ns === 0
-						? i18n.t("namespace-main")
-						: config.mw.wgFormattedNamespaces[ns]
+					ns === 0 ?
+						i18n.t( 'namespace-main' ) :
+						config.mw.wgFormattedNamespaces[ ns ]
 				)
-			);
-			break;
+				);
+				break;
 		}
 	}
 };
 
-PrefsFormWidget.prototype.getPrefs = function() {
-	var prefs = {};
-	for (let prefName in this.preferences ) {
-		let input = this.preferences[prefName].input;
+PrefsFormWidget.prototype.getPrefs = function () {
+	const prefs = {};
+	for ( const prefName in this.preferences ) {
+		const input = this.preferences[ prefName ].input;
 		let value;
-		switch (input.constructor.name) {
-		case "OoUiButtonSelectWidget":
-			value = input.findSelectedItem().getData();
-			break;
-		case "OoUiToggleSwitchWidget":
-			value = input.getValue();
-			break;
-		case "OoUiNumberInputWidget":
-			value = Number(input.getValue()); // widget uses strings, not numbers!
-			break;
-		case "MwWidgetsNamespacesMultiselectWidget":
-			value = input.getValue().map(Number); // widget uses strings, not numbers!
-			break;
+		switch ( input.constructor.name ) {
+			case 'OoUiButtonSelectWidget':
+				value = input.findSelectedItem().getData();
+				break;
+			case 'OoUiToggleSwitchWidget':
+				value = input.getValue();
+				break;
+			case 'OoUiNumberInputWidget':
+				value = Number( input.getValue() ); // widget uses strings, not numbers!
+				break;
+			case 'MwWidgetsNamespacesMultiselectWidget':
+				value = input.getValue().map( Number ); // widget uses strings, not numbers!
+				break;
 		}
-		prefs[prefName] = value;
+		prefs[ prefName ] = value;
 	}
 	return prefs;
 };
 
-PrefsFormWidget.prototype.onResetCacheClick = function() {
-	OO.ui.confirm(i18n.t("confirm-reset-cache"))
-		.then(confirmed => {
-			if (confirmed) { 
-				this.emit("resetCache");
+PrefsFormWidget.prototype.onResetCacheClick = function () {
+	OO.ui.confirm( i18n.t( 'confirm-reset-cache' ) )
+		.then( ( confirmed ) => {
+			if ( confirmed ) {
+				this.emit( 'resetCache' );
 			}
-		});
+		} );
 };
 
 export default PrefsFormWidget;

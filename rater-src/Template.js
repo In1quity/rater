@@ -1,11 +1,17 @@
-import API from "./api";
-import {isAfterDate, mostFrequent, filterAndMap} from "./util";
-import config from "./config";
-import * as cache from "./cache";
+import API from './api';
+import { isAfterDate, mostFrequent, filterAndMap } from './util';
+import config from './config';
+import * as cache from './cache';
 // <nowiki>
 
 // Debug logger (enable via window.RATER_DEBUG)
-var tdLog = function(){ try { if (window && window.RATER_DEBUG) { var args = Array.prototype.slice.call(arguments); args.unshift("[Rater][TD]"); console.log.apply(console, args); } } catch(e) { /* ignore */ } };
+const tdLog = function () {
+	try {
+		if ( window && window.RATER_DEBUG ) {
+			const args = Array.prototype.slice.call( arguments ); args.unshift( '[Rater][TD]' ); console.log.apply( console, args );
+		}
+	} catch ( e ) { /* ignore */ }
+};
 
 /** Template
  *
@@ -22,32 +28,32 @@ var tdLog = function(){ try { if (window && window.RATER_DEBUG) { var args = Arr
  * @constructor
  * @param {String} wikitext Wikitext of a template transclusion, starting with '{{' and ending with '}}'.
  */
-var Template = function(wikitext) {
+const Template = function ( wikitext ) {
 	this.wikitext = wikitext;
 	this.parameters = [];
 	// Spacing around pipes, equals signs, end braces (defaults)
-	this.pipeStyle = " |";
-	this.equalsStyle = "=";
-	this.endBracesStyle = "}}";
+	this.pipeStyle = ' |';
+	this.equalsStyle = '=';
+	this.endBracesStyle = '}}';
 };
-Template.prototype.addParam = function(name, val, wikitext) {
-	this.parameters.push({
-		"name": name,
-		"value": val, 
-		"wikitext": "|" + wikitext
-	});
+Template.prototype.addParam = function ( name, val, wikitext ) {
+	this.parameters.push( {
+		name: name,
+		value: val,
+		wikitext: '|' + wikitext
+	} );
 };
 /**
  * Get a parameter data by parameter name
- */ 
-Template.prototype.getParam = function(paramName) {
-	return this.parameters.find(function(p) { return p.name == paramName; });
+ */
+Template.prototype.getParam = function ( paramName ) {
+	return this.parameters.find( ( p ) => p.name == paramName );
 };
-Template.prototype.setName = function(name) {
+Template.prototype.setName = function ( name ) {
 	this.name = name.trim();
 };
-Template.prototype.getTitle = function() {
-	return mw.Title.newFromText("Template:" + this.name);
+Template.prototype.getTitle = function () {
+	return mw.Title.newFromText( 'Template:' + this.name );
 };
 
 /**
@@ -87,250 +93,271 @@ Template.prototype.getTitle = function() {
 			return this.parameters.find(function(p) { return p.name == paramName; });
 		}
 	}
- *    
- * 
+ *
+ *
  * @param {String} wikitext
  * @param {Boolean} recursive Set to `true` to also parse templates that occur within other templates,
- *  rather than just top-level templates. 
+ *  rather than just top-level templates.
  * @return {Template[]} templates
 */
-var parseTemplates = function(wikitext, recursive) { /* eslint-disable no-control-regex */
-	if (!wikitext) {
+const parseTemplates = function ( wikitext, recursive ) {
+	if ( !wikitext ) {
 		return [];
 	}
-	var strReplaceAt = function(string, index, char) {
-		return string.slice(0,index) + char + string.slice(index + 1);
+	const strReplaceAt = function ( string, index, char ) {
+		return string.slice( 0, index ) + char + string.slice( index + 1 );
 	};
 
-	var result = [];
-	
-	var processTemplateText = function (startIdx, endIdx) {
-		var text = wikitext.slice(startIdx, endIdx);
+	const result = [];
 
-		var template = new Template("{{" + text.replace(/\x01/g,"|") + "}}");
-		
+	const processTemplateText = function ( startIdx, endIdx ) {
+		let text = wikitext.slice( startIdx, endIdx );
+
+		const template = new Template( '{{' + text.replace( /\x01/g, '|' ) + '}}' );
+
 		// swap out pipe in links with \x01 control character
 		// [[File: ]] can have multiple pipes, so might need multiple passes
-		while ( /(\[\[[^\]]*?)\|(.*?\]\])/g.test(text) ) {
-			text = text.replace(/(\[\[[^\]]*?)\|(.*?\]\])/g, "$1\x01$2");
+		while ( /(\[\[[^\]]*?)\|(.*?\]\])/g.test( text ) ) {
+			text = text.replace( /(\[\[[^\]]*?)\|(.*?\]\])/g, '$1\x01$2' );
 		}
 
 		// Figure out most-used spacing styles for pipes/equals
-		template.pipeStyle = mostFrequent( text.match(/[\s\n]*\|[\s\n]*/g) ) || " |";
-		template.equalsStyle = mostFrequent( text.replace(/(=[^|]*)=+/g, "$1").match(/[\s\n]*=[\s\n]*/g) ) || "=";
+		template.pipeStyle = mostFrequent( text.match( /[\s\n]*\|[\s\n]*/g ) ) || ' |';
+		template.equalsStyle = mostFrequent( text.replace( /(=[^|]*)=+/g, '$1' ).match( /[\s\n]*=[\s\n]*/g ) ) || '=';
 		// Figure out end-braces style
-		var endSpacing = text.match(/[\s\n]*$/);
-		template.endBracesStyle = (endSpacing ? endSpacing[0] : "") + "}}";
+		const endSpacing = text.match( /[\s\n]*$/ );
+		template.endBracesStyle = ( endSpacing ? endSpacing[ 0 ] : '' ) + '}}';
 
-		var chunks = text.split("|").map(function(chunk) {
+		const chunks = text.split( '|' ).map( ( chunk ) =>
 			// change '\x01' control characters back to pipes
-			return chunk.replace(/\x01/g,"|"); 
-		});
+			chunk.replace( /\x01/g, '|' )
+		);
 
-		template.setName(chunks[0]);
-		
-		var parameterChunks = chunks.slice(1);
+		template.setName( chunks[ 0 ] );
 
-		var unnamedIdx = 1;
-		parameterChunks.forEach(function(chunk) {
-			var indexOfEqualTo = chunk.indexOf("=");
-			var indexOfOpenBraces = chunk.indexOf("{{");
-			
-			var isWithoutEquals = !chunk.includes("=");
-			var hasBracesBeforeEquals = chunk.includes("{{") && indexOfOpenBraces < indexOfEqualTo;	
-			var isUnnamedParam = ( isWithoutEquals || hasBracesBeforeEquals );
-			
-			var pName, pNum, pVal;
+		const parameterChunks = chunks.slice( 1 );
+
+		let unnamedIdx = 1;
+		parameterChunks.forEach( ( chunk ) => {
+			const indexOfEqualTo = chunk.indexOf( '=' );
+			const indexOfOpenBraces = chunk.indexOf( '{{' );
+
+			const isWithoutEquals = !chunk.includes( '=' );
+			const hasBracesBeforeEquals = chunk.includes( '{{' ) && indexOfOpenBraces < indexOfEqualTo;
+			const isUnnamedParam = ( isWithoutEquals || hasBracesBeforeEquals );
+
+			let pName, pNum, pVal;
 			if ( isUnnamedParam ) {
 				// Get the next number not already used by either an unnamed parameter, or by a
 				// named parameter like `|1=val`
-				while ( template.getParam(unnamedIdx) ) {
+				while ( template.getParam( unnamedIdx ) ) {
 					unnamedIdx++;
 				}
 				pNum = unnamedIdx;
 				pVal = chunk.trim();
 			} else {
-				pName = chunk.slice(0, indexOfEqualTo).trim();
-				pVal = chunk.slice(indexOfEqualTo + 1).trim();
+				pName = chunk.slice( 0, indexOfEqualTo ).trim();
+				pVal = chunk.slice( indexOfEqualTo + 1 ).trim();
 			}
-			template.addParam(pName || pNum, pVal, chunk);
-		});
-		
-		result.push(template);
+			template.addParam( pName || pNum, pVal, chunk );
+		} );
+
+		result.push( template );
 	};
 
-	
-	var n = wikitext.length;
-	
+	const n = wikitext.length;
+
 	// number of unclosed braces
-	var numUnclosed = 0;
+	let numUnclosed = 0;
 
 	// are we inside a comment, or between nowiki tags, or in a {{{parameter}}}?
-	var inComment = false;
-	var inNowiki = false;
-	var inParameter = false;
+	let inComment = false;
+	let inNowiki = false;
+	let inParameter = false;
 
-	var startIdx, endIdx;
-	
-	for (var i=0; i<n; i++) {
-		
+	let startIdx, endIdx;
+
+	for ( let i = 0; i < n; i++ ) {
+
 		if ( !inComment && !inNowiki && !inParameter ) {
 
-			if (wikitext[i] === "{" && wikitext[i+1] === "{" && wikitext[i+2] === "{" && wikitext[i+3] !== "{") {
+			if ( wikitext[ i ] === '{' && wikitext[ i + 1 ] === '{' && wikitext[ i + 2 ] === '{' && wikitext[ i + 3 ] !== '{' ) {
 				inParameter = true;
 				i += 2;
-			} else if (wikitext[i] === "{" && wikitext[i+1] === "{") {
-				if (numUnclosed === 0) {
-					startIdx = i+2;
+			} else if ( wikitext[ i ] === '{' && wikitext[ i + 1 ] === '{' ) {
+				if ( numUnclosed === 0 ) {
+					startIdx = i + 2;
 				}
 				numUnclosed += 2;
 				i++;
-			} else if (wikitext[i] === "}" && wikitext[i+1] === "}") {
-				if (numUnclosed === 2) {
+			} else if ( wikitext[ i ] === '}' && wikitext[ i + 1 ] === '}' ) {
+				if ( numUnclosed === 2 ) {
 					endIdx = i;
-					processTemplateText(startIdx, endIdx);
+					processTemplateText( startIdx, endIdx );
 				}
 				numUnclosed -= 2;
 				i++;
-			} else if (wikitext[i] === "|" && numUnclosed > 2) {
+			} else if ( wikitext[ i ] === '|' && numUnclosed > 2 ) {
 				// swap out pipes in nested templates with \x01 character
-				wikitext = strReplaceAt(wikitext, i,"\x01");
-			} else if ( /^<!--/.test(wikitext.slice(i, i + 4)) ) {
+				wikitext = strReplaceAt( wikitext, i, '\x01' );
+			} else if ( /^<!--/.test( wikitext.slice( i, i + 4 ) ) ) {
 				inComment = true;
 				i += 3;
-			} else if ( /^<nowiki ?>/.test(wikitext.slice(i, i + 9)) ) {
+			} else if ( /^<nowiki ?>/.test( wikitext.slice( i, i + 9 ) ) ) {
 				inNowiki = true;
 				i += 7;
-			} 
+			}
 
 		} else { // we are in a comment or nowiki or {{{parameter}}}
-			if (wikitext[i] === "|") {
+			if ( wikitext[ i ] === '|' ) {
 				// swap out pipes with \x01 character
-				wikitext = strReplaceAt(wikitext, i,"\x01");
-			} else if (/^-->/.test(wikitext.slice(i, i + 3))) {
+				wikitext = strReplaceAt( wikitext, i, '\x01' );
+			} else if ( /^-->/.test( wikitext.slice( i, i + 3 ) ) ) {
 				inComment = false;
 				i += 2;
-			} else if (/^<\/nowiki ?>/.test(wikitext.slice(i, i + 10))) {
+			} else if ( /^<\/nowiki ?>/.test( wikitext.slice( i, i + 10 ) ) ) {
 				inNowiki = false;
 				i += 8;
-			} else if (wikitext[i] === "}" && wikitext[i+1] === "}" && wikitext[i+2] === "}") {
+			} else if ( wikitext[ i ] === '}' && wikitext[ i + 1 ] === '}' && wikitext[ i + 2 ] === '}' ) {
 				inParameter = false;
 				i += 2;
 			}
 		}
 
 	}
-	
+
 	if ( recursive ) {
-		var subtemplates = filterAndMap(result,
-			template => /\{\{(?:.|\n)*\}\}/.test(template.wikitext.slice(2,-2)),
-			template => parseTemplates(template.wikitext.slice(2,-2), true)
+		const subtemplates = filterAndMap( result,
+			( template ) => /\{\{(?:.|\n)*\}\}/.test( template.wikitext.slice( 2, -2 ) ),
+			( template ) => parseTemplates( template.wikitext.slice( 2, -2 ), true )
 		);
-		return result.concat.apply(result, subtemplates);
+		return result.concat.apply( result, subtemplates );
 	}
 
-	return result; 
-}; /* eslint-enable no-control-regex */
+	return result;
+};
 
 /**
  * @param {Template|Template[]} templates
  * @return {Promise<Template>|Promise<Template[]>}
  */
-var getWithRedirectTo = function(templates) {
-	var templatesArray = Array.isArray(templates) ? templates : [templates];
-	if (templatesArray.length === 0) {
-		return $.Deferred().resolve([]);
+const getWithRedirectTo = function ( templates ) {
+	const templatesArray = Array.isArray( templates ) ? templates : [ templates ];
+	if ( templatesArray.length === 0 ) {
+		return $.Deferred().resolve( [] );
 	}
 
-	return API.get({
-		"action": "query",
-		"format": "json",
-		"titles": filterAndMap(templatesArray,
-			template => template.getTitle() !== null,
-			template => template.getTitle().getPrefixedText()
+	return API.get( {
+		action: 'query',
+		format: 'json',
+		titles: filterAndMap( templatesArray,
+			( template ) => template.getTitle() !== null,
+			( template ) => template.getTitle().getPrefixedText()
 		),
-		"redirects": 1
-	}).then(function(result) {
+		redirects: 1
+	} ).then( ( result ) => {
 		if ( !result || !result.query ) {
-			return $.Deferred().reject("Empty response");
+			return $.Deferred().reject( 'Empty response' );
 		}
 		if ( result.query.redirects ) {
-			result.query.redirects.forEach(function(redirect) {
-				var i = templatesArray.findIndex(template => {
-					let title = template.getTitle();
+			result.query.redirects.forEach( ( redirect ) => {
+				const i = templatesArray.findIndex( ( template ) => {
+					const title = template.getTitle();
 					return title && title.getPrefixedText() === redirect.from;
-				});
-				if (i !== -1) {
-					templatesArray[i].redirectTarget = mw.Title.newFromText(redirect.to);
+				} );
+				if ( i !== -1 ) {
+					templatesArray[ i ].redirectTarget = mw.Title.newFromText( redirect.to );
 				}
-			});
+			} );
 		}
-		return Array.isArray(templates) ? templatesArray : templatesArray[0];
-	});
+		return Array.isArray( templates ) ? templatesArray : templatesArray[ 0 ];
+	} );
 };
 
-Template.prototype.getDataForParam = function(key, paraName) {
+Template.prototype.getDataForParam = function ( key, paraName ) {
 	if ( !this.paramData ) {
 		return null;
 	}
 	// If alias, switch from alias to preferred parameter name
-	var para = this.paramAliases[paraName] || paraName;	
-	if ( !this.paramData[para] ) {
+	const para = this.paramAliases[ paraName ] || paraName;
+	if ( !this.paramData[ para ] ) {
 		return;
 	}
-	
-	var data = this.paramData[para][key];
+
+	const data = this.paramData[ para ][ key ];
 	// Data might actually be an object with key "en"
-	if ( data && data.en && !Array.isArray(data) ) {
+	if ( data && data.en && !Array.isArray( data ) ) {
 		return data.en;
 	}
 	return data;
 };
 
-Template.prototype.isShellTemplate = function() {
-	var mainText = this.redirectTarget
-		? this.redirectTarget.getMainText()
-		: this.getTitle().getMainText();
+Template.prototype.isShellTemplate = function () {
+	const mainText = this.redirectTarget ?
+		this.redirectTarget.getMainText() :
+		this.getTitle().getMainText();
 	// For now, just check against the main template name
 	// TODO: Make this async to check against all aliases
 	return mainText === config.shellTemplate;
 };
 
-Template.prototype.setParamDataAndSuggestions = function() {
-	var self = this;
-	var paramDataSet = $.Deferred();
-	
-	if ( self.paramData ) { return paramDataSet.resolve(); }
-    
-	var prefixedText = self.redirectTarget
-		? self.redirectTarget.getPrefixedText()
-		: self.getTitle().getPrefixedText();
+Template.prototype.setParamDataAndSuggestions = function () {
+	const self = this;
+	const paramDataSet = $.Deferred();
 
-	try { tdLog("load start", prefixedText); } catch(e) { /* ignore */ }
+	if ( self.paramData ) {
+		return paramDataSet.resolve();
+	}
 
-	var cachedInfo = cache.read(prefixedText + "-params");
+	const prefixedText = self.redirectTarget ?
+		self.redirectTarget.getPrefixedText() :
+		self.getTitle().getPrefixedText();
+
+	try {
+		tdLog( 'load start', prefixedText );
+	} catch ( e ) { /* ignore */ }
+
+	const cachedInfo = cache.read( prefixedText + '-params' );
 
 	// helper to compute canonical names using current self.paramData/self.paramAliases
-	var computeCanonicalNames = function(){
-		var findByNameOrAlias = function(target){
-			var lcTarget = String(target || "").toLowerCase();
-			for (var key in self.paramData) { if (Object.prototype.hasOwnProperty.call(self.paramData, key)) { if (String(key).toLowerCase() === lcTarget) { return key; } } }
-			for (var alias in self.paramAliases) { if (Object.prototype.hasOwnProperty.call(self.paramAliases, alias)) { if (String(alias).toLowerCase() === lcTarget) { return self.paramAliases[alias]; } } }
+	const computeCanonicalNames = function () {
+		const findByNameOrAlias = function ( target ) {
+			const lcTarget = String( target || '' ).toLowerCase();
+			for ( const key in self.paramData ) {
+				if ( Object.prototype.hasOwnProperty.call( self.paramData, key ) ) {
+					if ( String( key ).toLowerCase() === lcTarget ) {
+						return key;
+					}
+				}
+			}
+			for ( const alias in self.paramAliases ) {
+				if ( Object.prototype.hasOwnProperty.call( self.paramAliases, alias ) ) {
+					if ( String( alias ).toLowerCase() === lcTarget ) {
+						return self.paramAliases[ alias ];
+					}
+				}
+			}
 			return null;
 		};
-		var className = findByNameOrAlias("class");
-		var importanceName = findByNameOrAlias("importance");
-		if (!className) {
-			var keys = Object.keys(self.paramData||{});
-			className = keys.find(function(k){ var s = String(k).toLowerCase(); return /class|класс|уров/i.test(s); });
+		let className = findByNameOrAlias( 'class' );
+		let importanceName = findByNameOrAlias( 'importance' );
+		if ( !className ) {
+			const keys = Object.keys( self.paramData || {} );
+			className = keys.find( ( k ) => {
+				const s = String( k ).toLowerCase(); return /class|класс|уров/i.test( s );
+			} );
 		}
-		if (!importanceName) {
-			var keys2 = Object.keys(self.paramData||{});
-			importanceName = keys2.find(function(k){ var s = String(k).toLowerCase(); return /importance|важност/i.test(s); });
+		if ( !importanceName ) {
+			const keys2 = Object.keys( self.paramData || {} );
+			importanceName = keys2.find( ( k ) => {
+				const s = String( k ).toLowerCase(); return /importance|важност/i.test( s );
+			} );
 		}
-		self.classParamName = className || "class";
-		self.importanceParamName = importanceName || "importance";
-		try { tdLog("canonical keys", { class: self.classParamName, importance: self.importanceParamName }); } catch(e) { /* ignore */ }
+		self.classParamName = className || 'class';
+		self.importanceParamName = importanceName || 'importance';
+		try {
+			tdLog( 'canonical keys', { class: self.classParamName, importance: self.importanceParamName } );
+		} catch ( e ) { /* ignore */ }
 	};
 
 	if (
@@ -347,96 +374,98 @@ Template.prototype.setParamDataAndSuggestions = function() {
 		self.paramAliases = cachedInfo.value.paramAliases;
 		// rebuild aliases from paramData to avoid stale/empty cache
 		self.paramAliases = {};
-		$.each(self.paramData, function(paraName, paraData) {
-			if (paraData && Array.isArray(paraData.aliases)) {
-				paraData.aliases.forEach(function(alias){ self.paramAliases[alias] = paraName; });
+		$.each( self.paramData, ( paraName, paraData ) => {
+			if ( paraData && Array.isArray( paraData.aliases ) ) {
+				paraData.aliases.forEach( ( alias ) => {
+					self.paramAliases[ alias ] = paraName;
+				} );
 			}
-		});
+		} );
 		computeCanonicalNames();
-		try { tdLog("param keys (cache)", Object.keys(self.paramData)); tdLog("aliases (cache)", self.paramAliases); } catch(e) { /* ignore */ }
+		try {
+			tdLog( 'param keys (cache)', Object.keys( self.paramData ) ); tdLog( 'aliases (cache)', self.paramAliases );
+		} catch ( e ) { /* ignore */ }
 		paramDataSet.resolve();
-		if ( !isAfterDate(cachedInfo.staleDate) ) {
+		if ( !isAfterDate( cachedInfo.staleDate ) ) {
 			// Just use the cached data
 			return paramDataSet;
 		} // else: Use the cache data for now, but also fetch new data from API
 	}
-	
-	API.get({
-		action: "templatedata",
+
+	API.get( {
+		action: 'templatedata',
 		titles: prefixedText,
 		redirects: 1,
 		includeMissingTitles: 1
-	})
+	} )
 		.then(
-			function(response) { return response; },
-			function(/*error*/) { return null; } // Ignore errors, will use default data
+			( response ) => response,
+			( /* error */ ) => null // Ignore errors, will use default data
 		)
-		.then( function(result) {
+		.then( ( result ) => {
 		// Figure out page id (beacuse action=templatedata doesn't have an indexpageids option)
-			var id = result && $.map(result.pages, function( _value, key ) { return key; });
-		
-			if ( !result || !result.pages[id] || result.pages[id].notemplatedata || !result.pages[id].params ) {
+			const id = result && $.map( result.pages, ( _value, key ) => key );
+
+			if ( !result || !result.pages[ id ] || result.pages[ id ].notemplatedata || !result.pages[ id ].params ) {
 			// No TemplateData, so use defaults (guesses)
 				self.notemplatedata = true;
 				self.templatedataApiError = !result;
 				self.paramData = config.defaultParameterData;
 			} else {
-				self.paramData = result.pages[id].params;
+				self.paramData = result.pages[ id ].params;
 			}
-        
+
 			self.paramAliases = {};
-			$.each(self.paramData, function(paraName, paraData) {
+			$.each( self.paramData, ( paraName, paraData ) => {
 				// Extract aliases for easier reference later on
 				if ( paraData.aliases && paraData.aliases.length ) {
-					paraData.aliases.forEach(function(alias){
-						self.paramAliases[alias] = paraName;
-					});
+					paraData.aliases.forEach( ( alias ) => {
+						self.paramAliases[ alias ] = paraName;
+					} );
 				}
 				// Extract allowed values array from description
-				if ( paraData.description && /\[.*'.+?'.*?\]/.test(paraData.description.en) ) {
+				if ( paraData.description && /\[.*'.+?'.*?\]/.test( paraData.description.en ) ) {
 					try {
-						var allowedVals = JSON.parse(
+						const allowedVals = JSON.parse(
 							paraData.description.en
-								.replace(/^.*\[/,"[")
-								.replace(/"/g, "\\\"")
-								.replace(/'/g, "\"")
-								.replace(/,\s*]/, "]")
-								.replace(/].*$/, "]")
+								.replace( /^.*\[/, '[' )
+								.replace( /"/g, '\\"' )
+								.replace( /'/g, '"' )
+								.replace( /,\s*]/, ']' )
+								.replace( /].*$/, ']' )
 						);
-						self.paramData[paraName].allowedValues = allowedVals;
-					} catch(e) {
-						console.warn("[Rater] Could not parse allowed values in description:\n  "+
-					paraData.description.en + "\n Check TemplateData for parameter |" + paraName +
-					"= in " + self.getTitle().getPrefixedText());
+						self.paramData[ paraName ].allowedValues = allowedVals;
+					} catch ( e ) {
+						console.warn( '[Rater] Could not parse allowed values in description:\n  ' +
+					paraData.description.en + '\n Check TemplateData for parameter |' + paraName +
+					'= in ' + self.getTitle().getPrefixedText() );
 					}
 				}
-			});
+			} );
 			computeCanonicalNames();
-			try { tdLog("param keys (api)", Object.keys(self.paramData)); tdLog("aliases (api)", self.paramAliases); } catch(e) { /* ignore */ }
-		
+			try {
+				tdLog( 'param keys (api)', Object.keys( self.paramData ) ); tdLog( 'aliases (api)', self.paramAliases );
+			} catch ( e ) { /* ignore */ }
+
 			// Make suggestions for combobox
-			var allParamsArray = ( !self.notemplatedata && result.pages[id].paramOrder ) ||
-			$.map(self.paramData, function(_val, key){
-				return key;
-			});
-			self.parameterSuggestions = allParamsArray.filter(function(paramName) {
-				return ( paramName && paramName !== "class" && paramName !== "importance" );
-			})
-				.map(function(paramName) {
-					var optionObject = {data: paramName};
-					var label = self.getDataForParam(label, paramName);
+			const allParamsArray = ( !self.notemplatedata && result.pages[ id ].paramOrder ) ||
+			$.map( self.paramData, ( _val, key ) => key );
+			self.parameterSuggestions = allParamsArray.filter( ( paramName ) => ( paramName && paramName !== 'class' && paramName !== 'importance' ) )
+				.map( ( paramName ) => {
+					const optionObject = { data: paramName };
+					var label = self.getDataForParam( label, paramName );
 					if ( label ) {
-						optionObject.label = label + " (|" + paramName + "=)";
+						optionObject.label = label + ' (|' + paramName + '=)';
 					}
 					return optionObject;
-				});
-		
+				} );
+
 			if ( self.templatedataApiError ) {
 				// Don't save defaults/guesses to cache;
 				return true;
 			}
-		
-			cache.write(prefixedText + "-params", {
+
+			cache.write( prefixedText + '-params', {
 				notemplatedata: self.notemplatedata,
 				paramData: self.paramData,
 				parameterSuggestions: self.parameterSuggestions,
@@ -444,59 +473,59 @@ Template.prototype.setParamDataAndSuggestions = function() {
 			},	1
 			);
 			return true;
-		})
+		} )
 		.then(
 			paramDataSet.resolve,
 			paramDataSet.reject
 		);
-	
-	return paramDataSet;	
+
+	return paramDataSet;
 };
 
-var makeListAs = function(subjectTitle) {
-	var name = subjectTitle.getMainText().replace(/\s\(.*\)/, "");
-	if ( name.indexOf(" ") === -1 ) {
+const makeListAs = function ( subjectTitle ) {
+	let name = subjectTitle.getMainText().replace( /\s\(.*\)/, '' );
+	if ( !name.includes( ' ' ) ) {
 		return name;
 	}
-	var generationalSuffix = "";
-	if ( / (?:[JS]r.?|[IVX]+)$/.test(name) ) {
-		generationalSuffix = name.slice(name.lastIndexOf(" "));
-		name = name.slice(0, name.lastIndexOf(" "));
-		if ( name.indexOf(" ") === -1 ) {
+	let generationalSuffix = '';
+	if ( / (?:[JS]r.?|[IVX]+)$/.test( name ) ) {
+		generationalSuffix = name.slice( name.lastIndexOf( ' ' ) );
+		name = name.slice( 0, name.lastIndexOf( ' ' ) );
+		if ( !name.includes( ' ' ) ) {
 			return name + generationalSuffix;
 		}
 	}
-	var lastName = name.slice(name.lastIndexOf(" ")+1).replace(/,$/, "");
-	var otherNames = name.slice(0, name.lastIndexOf(" "));
-	return lastName + ", " + otherNames + generationalSuffix;
+	const lastName = name.slice( name.lastIndexOf( ' ' ) + 1 ).replace( /,$/, '' );
+	const otherNames = name.slice( 0, name.lastIndexOf( ' ' ) );
+	return lastName + ', ' + otherNames + generationalSuffix;
 };
 
-Template.prototype.addMissingParams = function() {
-	var thisTemplate = this;
+Template.prototype.addMissingParams = function () {
+	const thisTemplate = this;
 
 	// Autofill listas parameter for WP:BIO
-	var isBiographyBanner = this.getTitle().getMainText() === "WikiProject Biography" ||
-		(this.redirectTarget && this.redirectTarget.getMainText() === "WikiProject Biography");
+	const isBiographyBanner = this.getTitle().getMainText() === 'WikiProject Biography' ||
+		( this.redirectTarget && this.redirectTarget.getMainText() === 'WikiProject Biography' );
 
-	if (isBiographyBanner && !this.getParam("listas")) {
-		var subjectTitle = mw.Title.newFromText(config.mw.wgPageName).getSubjectPage();
-		this.parameters.push({
-			name: "listas",
-			value: makeListAs(subjectTitle),
-			autofilled: true,
-		});
+	if ( isBiographyBanner && !this.getParam( 'listas' ) ) {
+		const subjectTitle = mw.Title.newFromText( config.mw.wgPageName ).getSubjectPage();
+		this.parameters.push( {
+			name: 'listas',
+			value: makeListAs( subjectTitle ),
+			autofilled: true
+		} );
 	}
 
 	// Make sure required/suggested parameters are present
-	$.each(thisTemplate.paramData, function(paraName, paraData) {
-		if ( (paraData.required || paraData.suggested) && !thisTemplate.getParam(paraName) ) {
+	$.each( thisTemplate.paramData, ( paraName, paraData ) => {
+		if ( ( paraData.required || paraData.suggested ) && !thisTemplate.getParam( paraName ) ) {
 			// Check if already present in an alias, if any
 			if ( paraData.aliases.length ) {
-				var aliases = thisTemplate.parameters.filter(p => {
-					var isAlias = paraData.aliases.includes(p.name);
-					var isEmpty = !p.value;
+				const aliases = thisTemplate.parameters.filter( ( p ) => {
+					const isAlias = paraData.aliases.includes( p.name );
+					const isEmpty = !p.value;
 					return isAlias && !isEmpty;
-				});
+				} );
 				if ( aliases.length ) {
 				// At least one non-empty alias, so do nothing
 					return;
@@ -505,123 +534,127 @@ Template.prototype.addMissingParams = function() {
 			// No non-empty aliases, so add this to the parameters list (with
 			// value set parameter to either the autovaule, or as null).
 			// Also set that it was autofilled.
-			thisTemplate.parameters.push({
-				name:paraName,
+			thisTemplate.parameters.push( {
+				name: paraName,
 				value: paraData.autovalue || null,
-				autofilled: true,
-			});
+				autofilled: true
+			} );
 		}
-	});
+	} );
 
 	return thisTemplate;
 };
 
-Template.prototype.setClassesAndImportances = function() {
-	var parsed = $.Deferred();
+Template.prototype.setClassesAndImportances = function () {
+	const parsed = $.Deferred();
 
 	// Don't re-parse if already parsed; no need to parse shell templates or banners without ratings
 	if ( this.isShellTemplate() ) {
-		this.classes = [...config.bannerDefaults.classes];
+		this.classes = [ ...config.bannerDefaults.classes ];
 		return parsed.resolve();
-	} else if ( (this.classes && this.importances) || this.withoutRatings ) {
+	} else if ( ( this.classes && this.importances ) || this.withoutRatings ) {
 		return parsed.resolve();
-	} 
+	}
 
-	var mainText = this.getTitle().getMainText();
+	const mainText = this.getTitle().getMainText();
 
 	// Prefer TemplateData-defined values when available
 	try {
-		tdLog("TD param presence", {
+		tdLog( 'TD param presence', {
 			classKey: this.classParamName,
 			importanceKey: this.importanceParamName,
-			hasClass: !!(this.paramData && this.paramData[this.classParamName]),
-			hasImportance: !!(this.paramData && this.paramData[this.importanceParamName])
-		});
-	} catch(e) { /* ignore */ }
+			hasClass: !!( this.paramData && this.paramData[ this.classParamName ] ),
+			hasImportance: !!( this.paramData && this.paramData[ this.importanceParamName ] )
+		} );
+	} catch ( e ) { /* ignore */ }
 
-	var tdClasses = (this.getDataForParam("suggestedvalues", this.classParamName) || this.getDataForParam("allowedValues", this.classParamName));
-	var tdImportances = (this.getDataForParam("suggestedvalues", this.importanceParamName) || this.getDataForParam("allowedValues", this.importanceParamName));
+	const tdClasses = ( this.getDataForParam( 'suggestedvalues', this.classParamName ) || this.getDataForParam( 'allowedValues', this.classParamName ) );
+	const tdImportances = ( this.getDataForParam( 'suggestedvalues', this.importanceParamName ) || this.getDataForParam( 'allowedValues', this.importanceParamName ) );
 	try {
-		tdLog("TD arrays", {
-			classes: Array.isArray(tdClasses) && tdClasses.length,
-			importances: Array.isArray(tdImportances) && tdImportances.length,
+		tdLog( 'TD arrays', {
+			classes: Array.isArray( tdClasses ) && tdClasses.length,
+			importances: Array.isArray( tdImportances ) && tdImportances.length,
 			values: { classes: tdClasses, importances: tdImportances }
-		});
-	} catch(e) { /* ignore */ }
+		} );
+	} catch ( e ) { /* ignore */ }
 
-	if (Array.isArray(tdClasses) && tdClasses.length) {
+	if ( Array.isArray( tdClasses ) && tdClasses.length ) {
 		this.classes = tdClasses;
 	}
-	if (Array.isArray(tdImportances) && tdImportances.length) {
+	if ( Array.isArray( tdImportances ) && tdImportances.length ) {
 		this.importances = tdImportances;
 	}
 	// If TD declares importance param, but no values list was provided, fall back to defaults
-	if ((this.paramData && this.paramData[this.importanceParamName]) && (!Array.isArray(this.importances) || this.importances.length === 0)) {
+	if ( ( this.paramData && this.paramData[ this.importanceParamName ] ) && ( !Array.isArray( this.importances ) || this.importances.length === 0 ) ) {
 		this.importances = config.bannerDefaults.importances.slice();
-		try { tdLog("TD declares importance but no values → defaults", this.importances); } catch(e) { /* ignore */ }
+		try {
+			tdLog( 'TD declares importance but no values → defaults', this.importances );
+		} catch ( e ) { /* ignore */ }
 	}
 	// If both are now available, use them and short-circuit further detection
-	if (Array.isArray(this.classes) && this.classes.length && Array.isArray(this.importances) && this.importances.length) {
-		try { tdLog("TD ratings used", { classes: this.classes, importances: this.importances }); } catch(e) { /* ignore */ }
-		cache.write(mainText+"-ratings", { classes: this.classes, importances: this.importances }, 1);
+	if ( Array.isArray( this.classes ) && this.classes.length && Array.isArray( this.importances ) && this.importances.length ) {
+		try {
+			tdLog( 'TD ratings used', { classes: this.classes, importances: this.importances } );
+		} catch ( e ) { /* ignore */ }
+		cache.write( mainText + '-ratings', { classes: this.classes, importances: this.importances }, 1 );
 		return parsed.resolve();
 	}
 
 	// Some projects have hardcoded values, to avoid standard classes or to prevent API issues (timeout and/or node count exceeded)
 	const redirectTargetOrMainText = this.redirectTarget ? this.redirectTarget.getMainText() : mainText;
-	if ( config.customBanners[redirectTargetOrMainText] ) {
-		this.classes = config.customBanners[redirectTargetOrMainText].classes;
-		this.importances = config.customBanners[redirectTargetOrMainText].importances;
+	if ( config.customBanners[ redirectTargetOrMainText ] ) {
+		this.classes = config.customBanners[ redirectTargetOrMainText ].classes;
+		this.importances = config.customBanners[ redirectTargetOrMainText ].importances;
 		return parsed.resolve();
 	}
 
 	// Otherwise try reading from cached data
-	var cachedRatings = cache.read(mainText+"-ratings");
+	const cachedRatings = cache.read( mainText + '-ratings' );
 	if (
 		cachedRatings &&
 		cachedRatings.value &&
 		cachedRatings.staleDate &&
-		cachedRatings.value.classes!=null &&
-		cachedRatings.value.importances!=null
+		cachedRatings.value.classes != null &&
+		cachedRatings.value.importances != null
 	) {
 		this.classes = cachedRatings.value.classes;
 		this.importances = cachedRatings.value.importances;
-		try { tdLog("ratings cache hit", { classes: this.classes, importances: this.importances }); } catch(e) { /* ignore */ }
-		var cacheHasImportances = Array.isArray(this.importances) && this.importances.length > 0;
+		try {
+			tdLog( 'ratings cache hit', { classes: this.classes, importances: this.importances } );
+		} catch ( e ) { /* ignore */ }
+		const cacheHasImportances = Array.isArray( this.importances ) && this.importances.length > 0;
 		if ( cacheHasImportances ) {
 			parsed.resolve();
-			if ( !isAfterDate(cachedRatings.staleDate) ) {
+			if ( !isAfterDate( cachedRatings.staleDate ) ) {
 				return parsed;
 			}
 		}
 	}
 
-	var wikitextToParse = "";	
-	var selfRef = this;
-	config.bannerDefaults.extendedClasses.forEach(function(classname, index) {
-		var classKey = (selfRef.classParamName || "class");
-		var importanceKey = (selfRef.importanceParamName || "importance");
-		wikitextToParse += "{{" + mainText + "|" + classKey + "=" + classname + "|" + importanceKey + "=" +
-		(config.bannerDefaults.extendedImportances[index] || "") + "}}\n";
-	});
-	try { tdLog("parse API request", { title: mainText, classKey: this.classParamName, importanceKey: this.importanceParamName, classesTried: config.bannerDefaults.extendedClasses.length, importancesTried: config.bannerDefaults.extendedImportances.length }); } catch(e) { /* ignore */ }
+	let wikitextToParse = '';
+	const selfRef = this;
+	config.bannerDefaults.extendedClasses.forEach( ( classname, index ) => {
+		const classKey = ( selfRef.classParamName || 'class' );
+		const importanceKey = ( selfRef.importanceParamName || 'importance' );
+		wikitextToParse += '{{' + mainText + '|' + classKey + '=' + classname + '|' + importanceKey + '=' +
+		( config.bannerDefaults.extendedImportances[ index ] || '' ) + '}}\n';
+	} );
+	try {
+		tdLog( 'parse API request', { title: mainText, classKey: this.classParamName, importanceKey: this.importanceParamName, classesTried: config.bannerDefaults.extendedClasses.length, importancesTried: config.bannerDefaults.extendedImportances.length } );
+	} catch ( e ) { /* ignore */ }
 
-	return API.get({
-		action: "parse",
-		title: "Talk:Wikipedia",
+	return API.get( {
+		action: 'parse',
+		title: 'Talk:Wikipedia',
 		text: wikitextToParse,
-		prop: "categorieshtml"
-	})
-		.then((result) => {
-			var catsHtml = result.parse.categorieshtml["*"];
-			var extendedClasses = config.bannerDefaults.extendedClasses.filter(function(cl) {
-				return catsHtml.indexOf(cl+"-Class") !== -1;
-			});
-			this.classes = [...config.bannerDefaults.classes, ...extendedClasses];
-			this.importances = config.bannerDefaults.extendedImportances.filter(function(imp) {
-				return catsHtml.indexOf(imp+"-importance") !== -1;
-			});
-			cache.write(mainText+"-ratings",
+		prop: 'categorieshtml'
+	} )
+		.then( ( result ) => {
+			const catsHtml = result.parse.categorieshtml[ '*' ];
+			const extendedClasses = config.bannerDefaults.extendedClasses.filter( ( cl ) => catsHtml.includes( cl + '-Class' ) );
+			this.classes = [ ...config.bannerDefaults.classes, ...extendedClasses ];
+			this.importances = config.bannerDefaults.extendedImportances.filter( ( imp ) => catsHtml.includes( imp + '-importance' ) );
+			cache.write( mainText + '-ratings',
 				{
 					classes: this.classes,
 					importances: this.importances
@@ -629,8 +662,8 @@ Template.prototype.setClassesAndImportances = function() {
 				1
 			);
 			return true;
-		});
+		} );
 };
 
-export {Template, parseTemplates, getWithRedirectTo};
+export { Template, parseTemplates, getWithRedirectTo };
 // </nowiki>

@@ -1,105 +1,107 @@
-import setupRater from "./setup";
-import autoStart from "./autostart";
-import styles from "./css.js";
-import API, { makeErrorMsg } from "./api";
-import windowManager from "./windowManager";
-import i18n from "./i18n";
-import config, { loadExternalConfig } from "./config";
+import setupRater from './setup';
+import autoStart from './autostart';
+import styles from './css.js';
+import API, { makeErrorMsg } from './api';
+import windowManager from './windowManager';
+import i18n from './i18n';
+import config, { loadExternalConfig } from './config';
 // <nowiki>
 
 function startApp() {
-	console.log("[Rater] startApp called");
+	console.log( '[Rater] startApp called' );
 	let stylesheet;
 
-	const showMainWindow = data => {
-		if (!data || !data.success) {
+	const showMainWindow = ( data ) => {
+		if ( !data || !data.success ) {
 			return;
 		}
-		if (stylesheet) {
+		if ( stylesheet ) {
 			stylesheet.disabled = false;
 		} else {
-			stylesheet = mw.util.addCSS(styles);
+			stylesheet = mw.util.addCSS( styles );
 		}
 		// Add css class to body to enable background scrolling
-		document.getElementsByTagName("body")[0].classList.add("rater-mainWindow-open");
+		document.getElementsByTagName( 'body' )[ 0 ].classList.add( 'rater-mainWindow-open' );
 		// Open the window
-		windowManager.openWindow("main", data)
-			.closed.then( result => {
+		windowManager.openWindow( 'main', data )
+			.closed.then( ( result ) => {
 				// Disable/remove the css styles, so as to not interfere with other scripts/content/OOUI windows
-				if (stylesheet) { stylesheet.disabled = true; }
-				document.getElementsByTagName("body")[0].classList.remove("rater-mainWindow-open");
+				if ( stylesheet ) {
+					stylesheet.disabled = true;
+				}
+				document.getElementsByTagName( 'body' )[ 0 ].classList.remove( 'rater-mainWindow-open' );
 				// Restart if needed
-				if (result && result.restart) {
-					windowManager.removeWindows(["main"])
-						.then(setupRater)
-						.then(showMainWindow, showSetupError);
+				if ( result && result.restart ) {
+					windowManager.removeWindows( [ 'main' ] )
+						.then( setupRater )
+						.then( showMainWindow, showSetupError );
 					return;
 				}
 				// Show notification when saved successfully
-				if (result && result.success) {
-					const $message = $("<span>").append(
-						$("<strong>").text(i18n.t("notify-saved"))
+				if ( result && result.success ) {
+					const $message = $( '<span>' ).append(
+						$( '<strong>' ).text( i18n.t( 'notify-saved' ) )
 					);
-					if (result.upgradedStub) {
+					if ( result.upgradedStub ) {
 						$message.append(
-							$("<br>"),
+							$( '<br>' ),
 							// TODO: There should be a link that will edit the article for you
-							$("<span>").text(i18n.t("notify-stub"))
+							$( '<span>' ).text( i18n.t( 'notify-stub' ) )
 						);
 					}
 					mw.notify(
 						$message,
-						{ autoHide: true, autoHideSeconds: "long", tag: "Rater-saved" }
+						{ autoHide: true, autoHideSeconds: 'long', tag: 'Rater-saved' }
 					);
 				}
 			} );
 	};
 
-	const showSetupError = (code, jqxhr) => OO.ui.alert(
-		makeErrorMsg(code, jqxhr),	{
-			title: i18n.t("app-setup-error")
+	const showSetupError = ( code, jqxhr ) => OO.ui.alert(
+		makeErrorMsg( code, jqxhr ),	{
+			title: i18n.t( 'app-setup-error' )
 		}
 	);
 
-	// Invocation by portlet link 
-	console.log("[Rater] Adding portlet link");
+	// Invocation by portlet link
+	console.log( '[Rater] Adding portlet link' );
 	mw.util.addPortletLink(
-		"p-cactions",
-		"#",
-		i18n.t("app-portlet-text"),
-		"ca-rater",
-		i18n.t("app-portlet-tooltip"),
-		"5"
+		'p-cactions',
+		'#',
+		i18n.t( 'app-portlet-text' ),
+		'ca-rater',
+		i18n.t( 'app-portlet-tooltip' ),
+		'5'
 	);
-	$("#ca-rater").click(event => {
+	$( '#ca-rater' ).click( ( event ) => {
 		event.preventDefault();
-		setupRater().then(showMainWindow, showSetupError);
-	});
+		setupRater().then( showMainWindow, showSetupError );
+	} );
 
 	// Invocation by auto-start (do not show message on error)
-	autoStart().then(showMainWindow);
+	autoStart().then( showMainWindow );
 }
 
 // Ensure i18n is loaded before constructing UI so initial labels are localized
-console.log("[Rater] Starting initialization");
+console.log( '[Rater] Starting initialization' );
 try {
 	// Ensure external per-wiki config (if any) is loaded before i18n/UI
-	loadExternalConfig().then(function() {
-		console.log("[Rater] External config loaded");
+	loadExternalConfig().then( () => {
+		console.log( '[Rater] External config loaded' );
 		// Update API user agent with config version
-		if (config && config.script && config.script.version) {
-			API.updateUserAgent(config.script.version);
+		if ( config && config.script && config.script.version ) {
+			API.updateUserAgent( config.script.version );
 		}
 		return i18n.load();
-	}).then(function() {
-		console.log("[Rater] i18n loaded");
+	} ).then( () => {
+		console.log( '[Rater] i18n loaded' );
 		startApp();
-	}).catch(function(e) {
-		console.log("[Rater] Error in initialization:", e);
+	} ).catch( ( e ) => {
+		console.log( '[Rater] Error in initialization:', e );
 		startApp();
-	});
-} catch (e) {
-	console.log("[Rater] Error in initialization:", e);
+	} );
+} catch ( e ) {
+	console.log( '[Rater] Error in initialization:', e );
 	startApp();
 }
 // </nowiki>

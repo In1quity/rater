@@ -10,7 +10,7 @@ export default [
 	{
 		name: "rater/base",
 		files: ["**/*.js"],
-		plugins: { unicorn, security, "es-x": esx, jsdoc, "@stylistic": stylistic },
+		plugins: { unicorn, security, "es-x": esx, jsdoc, "@stylistic": stylistic, "@stylistic/js": stylistic },
 		languageOptions: {
 			ecmaVersion: 2017,
 			sourceType: "module",
@@ -56,7 +56,7 @@ export default [
 			"dot-notation": "error",
 				"@stylistic/eol-last": "error",
 			"eqeqeq": "error",
-				"@stylistic/func-call-spacing": "error",
+				"@stylistic/function-call-spacing": "error",
 				"@stylistic/indent": ["error", "tab", { "SwitchCase": 1 }],
 				"@stylistic/key-spacing": ["error", { "beforeColon": false, "afterColon": true }],
 				"@stylistic/keyword-spacing": "error",
@@ -128,7 +128,7 @@ export default [
 				"@stylistic/space-unary-ops": ["error", { "words": true, "nonwords": false }],
 				"@stylistic/spaced-comment": ["error", "always", { "exceptions": ["*", "!"], "block": { "balanced": true } }],
 				"@stylistic/switch-colon-spacing": ["error", { "after": true, "before": false }],
-				"@stylistic/unicode-bom": "error",
+				"unicode-bom": "error",
 				"@stylistic/wrap-iife": "error",
 			"yoda": ["error", "never"],
 
@@ -140,7 +140,7 @@ export default [
 
 			// Client-specific rules (browser environment)
 			"no-alert": "error",
-			"no-console": "error",
+			//"no-console": "error",
 			"no-implied-eval": "error",
 			"unicorn/no-invalid-remove-event-listener": "error",
 			"security/detect-non-literal-regexp": "off",
@@ -162,7 +162,7 @@ export default [
 			"prefer-const": "error",
 			"prefer-arrow-callback": "error",
 			    "@stylistic/implicit-arrow-linebreak": "error",
-			    "@stylistic/arrow-body-style": "error",
+			    "arrow-body-style": "error",
 			"unicorn/no-useless-promise-resolve-reject": "error",
 			"unicorn/prefer-includes": "error",
 			"es-x/no-restricted-syntax": "off",

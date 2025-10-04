@@ -1,238 +1,238 @@
 // <nowiki>
-const packagejson = require("../package.json");
-var version = packagejson.version;
+const packagejson = require( '../package.json' );
+const version = packagejson.version;
 
 // A global object that stores all the page and user configuration and settings
-var config = {
+const config = {
 	// Script info
 	script: {
 		// Advert to append to edit summaries
-		advert:  ` ([[WP:RATER#${version}|Rater]])`,
+		advert: ` ([[WP:RATER#${ version }|Rater]])`,
 		version: version
 	},
 	ores: {
-		wiki: "enwiki",
+		wiki: 'enwiki',
 		// Top-tier classes to aggregate with baselineClass in ORES summary
-		topTierClasses: ["FA", "GA"],
+		topTierClasses: [ 'FA', 'GA' ],
 		// Baseline class for ORES aggregation label
-		baselineClass: "B"
+		baselineClass: 'B'
 	},
 	// Default preferences, if user subpage raterPrefs.json does not exist
 	defaultPrefs: {
-		"autostart": false,
-		"autostartRedirects": false,
-		"autostartNamespaces": [0],
-		"minForShell": 1,
-		"bypassRedirects": true,
-		"autofillClassFromOthers": true,
-		"autofillClassFromOres": true,
-		"autofillImportance": true,
-		"collapseParamsLowerLimit": 6,
-		"watchlist": "preferences"
+		autostart: false,
+		autostartRedirects: false,
+		autostartNamespaces: [ 0 ],
+		minForShell: 1,
+		bypassRedirects: true,
+		autofillClassFromOthers: true,
+		autofillClassFromOres: true,
+		autofillImportance: true,
+		collapseParamsLowerLimit: 6,
+		watchlist: 'preferences'
 	},
 	// MediaWiki configuration values
 	mw: mw.config.get( [
-		"skin",
-		"wgPageName",
-		"wgNamespaceNumber",
-		"wgUserName",
-		"wgFormattedNamespaces",
-		"wgMonthNames",
-		"wgRevisionId",
-		"wgScriptPath",
-		"wgServer",
-		"wgCategories",
-		"wgIsMainPage"
+		'skin',
+		'wgPageName',
+		'wgNamespaceNumber',
+		'wgUserName',
+		'wgFormattedNamespaces',
+		'wgMonthNames',
+		'wgRevisionId',
+		'wgScriptPath',
+		'wgServer',
+		'wgCategories',
+		'wgIsMainPage'
 	] ),
 	bannerDefaults: {
 		classes: [
-			"FA",
-			"FL",
-			"A",
-			"GA",
-			"B",
-			"C",
-			"Start",
-			"Stub",
-			"List"
+			'FA',
+			'FL',
+			'A',
+			'GA',
+			'B',
+			'C',
+			'Start',
+			'Stub',
+			'List'
 		],
 		importances: [
-			"Top",
-			"High",
-			"Mid",
-			"Low"
+			'Top',
+			'High',
+			'Mid',
+			'Low'
 		],
 		extendedClasses: [
-			"Category",
-			"Draft",
-			"File",
-			"FM",
-			"Portal",
-			"Project",
-			"Template",
-			"Bplus",
-			"Future",
-			"Current",
-			"Disambig",
-			"NA",
-			"Redirect",
-			"Book"
+			'Category',
+			'Draft',
+			'File',
+			'FM',
+			'Portal',
+			'Project',
+			'Template',
+			'Bplus',
+			'Future',
+			'Current',
+			'Disambig',
+			'NA',
+			'Redirect',
+			'Book'
 		],
 		extendedImportances: [
-			"Top",
-			"High",
-			"Mid",
-			"Low",
-			"Bottom",
-			"NA"
+			'Top',
+			'High',
+			'Mid',
+			'Low',
+			'Bottom',
+			'NA'
 		]
 	},
 	customBanners: {
-		"WikiProject Military history": {
+		'WikiProject Military history': {
 			classes: [
-				"FA",
-				"FL",
-				"A",
-				"GA",
-				"B",
-				"C",
-				"Start",
-				"Stub",
-				"List",
-				"AL",
-				"BL",
-				"CL",
-				"Category",
-				"Draft",
-				"File",
-				"Portal",
-				"Project",
-				"Template",
-				"Disambig",
-				"Redirect",
-				"Book"			
+				'FA',
+				'FL',
+				'A',
+				'GA',
+				'B',
+				'C',
+				'Start',
+				'Stub',
+				'List',
+				'AL',
+				'BL',
+				'CL',
+				'Category',
+				'Draft',
+				'File',
+				'Portal',
+				'Project',
+				'Template',
+				'Disambig',
+				'Redirect',
+				'Book'
 			],
 			importances: []
 		},
-		"WikiProject Portals": {
+		'WikiProject Portals': {
 			classes: [
-				"FPo",
-				"Complete",
-				"Substantial",
-				"Basic",
-				"Incomplete",
-				"Meta",
-				"List",
-				"Category",
-				"Draft",
-				"File",
-				"Project",
-				"Template",
-				"Disambig",
-				"NA",
-				"Redirect"
+				'FPo',
+				'Complete',
+				'Substantial',
+				'Basic',
+				'Incomplete',
+				'Meta',
+				'List',
+				'Category',
+				'Draft',
+				'File',
+				'Project',
+				'Template',
+				'Disambig',
+				'NA',
+				'Redirect'
 			],
 			importances: [
-				"Top",
-				"High",
-				"Mid",
-				"Low",
-				"Bottom",
-				"NA"
+				'Top',
+				'High',
+				'Mid',
+				'Low',
+				'Bottom',
+				'NA'
 			]
 		},
-		"WikiProject Video games": {
+		'WikiProject Video games': {
 			classes: [
-				"FA","FL","FM","GA","B","C","Start","Stub","List","Category","Draft","File","Portal","Project","Template","Disambig","Redirect"
+				'FA', 'FL', 'FM', 'GA', 'B', 'C', 'Start', 'Stub', 'List', 'Category', 'Draft', 'File', 'Portal', 'Project', 'Template', 'Disambig', 'Redirect'
 			],
 			importances: [
-				"Top","High","Mid","Low","NA"
+				'Top', 'High', 'Mid', 'Low', 'NA'
 			]
 		}
 	},
 	categories: {
-		withRatings: "Category:WikiProject banners with quality assessment",
-		withoutRatings: "Category:WikiProject banners without quality assessment", 
-		wrappers: "Category:WikiProject banner wrapper templates",
-		notWPBM: "Category:WikiProject banner templates not based on WPBannerMeta",
-		inactive: "Category:Inactive WikiProject banners",
-		wir: "Category:Wrapper templates for WikiProject Women in Red"
+		withRatings: 'Category:WikiProject banners with quality assessment',
+		withoutRatings: 'Category:WikiProject banners without quality assessment',
+		wrappers: 'Category:WikiProject banner wrapper templates',
+		notWPBM: 'Category:WikiProject banner templates not based on WPBannerMeta',
+		inactive: 'Category:Inactive WikiProject banners',
+		wir: 'Category:Wrapper templates for WikiProject Women in Red'
 	},
 	subjectPageCategories: {
-		disambig: "Category:All disambiguation pages",
-		stub: "Category:All stub articles",
-		goodArticle: "Category:Good articles",
-		featuredArticle: "Category:Featured articles",
-		featuredList: "Category:Featured lists"
+		disambig: 'Category:All disambiguation pages',
+		stub: 'Category:All stub articles',
+		goodArticle: 'Category:Good articles',
+		featuredArticle: 'Category:Featured articles',
+		featuredList: 'Category:Featured lists'
 	},
 	// Array of valid banner name prefixes (case-insensitive)
 	bannerNamePrefixes: [
-		"WP ",
-		"WikiProject ",
+		'WP ',
+		'WikiProject '
 	],
 	// Main shell template name - aliases will be fetched via API
-	shellTemplate: "WikiProject banner shell",
+	shellTemplate: 'WikiProject banner shell',
 	defaultParameterData: {
-		"auto": {
-			"label": {
-				"en": "Auto-rated"
+		auto: {
+			label: {
+				en: 'Auto-rated'
 			},
-			"description": {
-				"en": "Automatically rated by a bot. Allowed values: ['yes']."
+			description: {
+				en: "Automatically rated by a bot. Allowed values: ['yes']."
 			},
-			"autovalue": "yes"
+			autovalue: 'yes'
 		},
-		"listas": {
-			"label": {
-				"en": "List as"
+		listas: {
+			label: {
+				en: 'List as'
 			},
-			"description": {
-				"en": "Sortkey for talk page"
+			description: {
+				en: 'Sortkey for talk page'
 			}
 		},
-		"small": {
-			"label": {
-				"en": "Small?",
+		small: {
+			label: {
+				en: 'Small?'
 			},
-			"description": {
-				"en": "Display a small version. Allowed values: ['yes']."
+			description: {
+				en: "Display a small version. Allowed values: ['yes']."
 			},
-			"autovalue": "yes"
+			autovalue: 'yes'
 		},
-		"attention": {
-			"label": {
-				"en": "Attention required?",
+		attention: {
+			label: {
+				en: 'Attention required?'
 			},
-			"description": {
-				"en": "Immediate attention required. Allowed values: ['yes']."
+			description: {
+				en: "Immediate attention required. Allowed values: ['yes']."
 			},
-			"autovalue": "yes"
+			autovalue: 'yes'
 		},
-		"needs-image": {
-			"label": {
-				"en": "Needs image?",
+		'needs-image': {
+			label: {
+				en: 'Needs image?'
 			},
-			"description": {
-				"en": "Request that an image or photograph of the subject be added to the article. Allowed values: ['yes']."
+			description: {
+				en: "Request that an image or photograph of the subject be added to the article. Allowed values: ['yes']."
 			},
-			"aliases": [
-				"needs-photo"
+			aliases: [
+				'needs-photo'
 			],
-			"autovalue": "yes",
-			"suggested": true
+			autovalue: 'yes',
+			suggested: true
 		},
-		"needs-infobox": {
-			"label": {
-				"en": "Needs infobox?",
+		'needs-infobox': {
+			label: {
+				en: 'Needs infobox?'
 			},
-			"description": {
-				"en": "Request that an infobox be added to the article. Allowed values: ['yes']."
+			description: {
+				en: "Request that an infobox be added to the article. Allowed values: ['yes']."
 			},
-			"aliases": [
-				"needs-photo"
+			aliases: [
+				'needs-photo'
 			],
-			"autovalue": "yes",
-			"suggested": true
+			autovalue: 'yes',
+			suggested: true
 		}
 	}
 };
@@ -240,20 +240,22 @@ var config = {
 /**
  * Deep-merge helper for external config overrides
  */
-var deepMerge = function(target, source) {
-	if (!source || typeof source !== "object") { return target; }
-	Object.keys(source).forEach(function(key) {
-		var sourceVal = source[key];
-		var targetVal = target[key];
-		if (Array.isArray(sourceVal)) {
+const deepMerge = function ( target, source ) {
+	if ( !source || typeof source !== 'object' ) {
+		return target;
+	}
+	Object.keys( source ).forEach( ( key ) => {
+		const sourceVal = source[ key ];
+		const targetVal = target[ key ];
+		if ( Array.isArray( sourceVal ) ) {
 			// Arrays: replace entirely
-			target[key] = sourceVal.slice();
-		} else if (sourceVal && typeof sourceVal === "object") {
-			target[key] = deepMerge(targetVal && typeof targetVal === "object" ? targetVal : {}, sourceVal);
+			target[ key ] = sourceVal.slice();
+		} else if ( sourceVal && typeof sourceVal === 'object' ) {
+			target[ key ] = deepMerge( targetVal && typeof targetVal === 'object' ? targetVal : {}, sourceVal );
 		} else {
-			target[key] = sourceVal;
+			target[ key ] = sourceVal;
 		}
-	});
+	} );
 	return target;
 };
 
@@ -261,74 +263,74 @@ var deepMerge = function(target, source) {
  * Load external per-wiki config from either window.RATER_CONFIG (object) or
  * window.RATER_CONFIG_URL (JSON URL). Returns a Promise.
  */
-var loadExternalConfig = function() {
+const loadExternalConfig = function () {
 	try {
-		if (window && window.RATER_CONFIG && typeof window.RATER_CONFIG === "object") {
-			deepMerge(config, window.RATER_CONFIG);
+		if ( window && window.RATER_CONFIG && typeof window.RATER_CONFIG === 'object' ) {
+			deepMerge( config, window.RATER_CONFIG );
 			return $.Deferred().resolve().promise();
 		}
-		if (window && window.RATER_CONFIG_URL && typeof window.RATER_CONFIG_URL === "string") {
-			return $.get(window.RATER_CONFIG_URL).then(function(data) {
+		if ( window && window.RATER_CONFIG_URL && typeof window.RATER_CONFIG_URL === 'string' ) {
+			return $.get( window.RATER_CONFIG_URL ).then( ( data ) => {
 				try {
-					var obj = (typeof data === "string") ? JSON.parse(data) : data;
-					if (obj && typeof obj === "object") { deepMerge(config, obj); }
-				} catch(_) { /* ignore parse error */ }
-			});
+					const obj = ( typeof data === 'string' ) ? JSON.parse( data ) : data;
+					if ( obj && typeof obj === 'object' ) {
+						deepMerge( config, obj );
+					}
+				} catch ( _ ) { /* ignore parse error */ }
+			} );
 		}
-	} catch(_) { /* ignore */ }
+	} catch ( _ ) { /* ignore */ }
 	return $.Deferred().resolve().promise();
 };
 
 // Cache for shell template aliases
-var shellTemplateAliases = null;
+let shellTemplateAliases = null;
 
 /**
  * Get shell template aliases via API (cached)
  * @param {Object} api - MediaWiki API instance
  * @returns {Promise<Array<string>>} Array of shell template names including aliases
  */
-function getShellTemplateAliases(api) {
-	if (shellTemplateAliases) {
-		return Promise.resolve(shellTemplateAliases);
+function getShellTemplateAliases( api ) {
+	if ( shellTemplateAliases ) {
+		return Promise.resolve( shellTemplateAliases );
 	}
-	
+
 	const mainTemplate = config.shellTemplate;
-	if (!mainTemplate) {
-		return Promise.resolve([]);
+	if ( !mainTemplate ) {
+		return Promise.resolve( [] );
 	}
-	
+
 	// Step 1: resolve canonical title (follow redirects)
-	return api.get({ 
-		action: "query", 
-		redirects: 1, 
-		titles: "Template:" + mainTemplate, 
-		format: "json", 
-		formatversion: 2 
-	}).then(function(data) {
-		const page = (data && data.query && data.query.pages && data.query.pages[0]) || {};
-		const canonical = page.title ? page.title.replace(/^Template:/, "") : mainTemplate;
-		
+	return api.get( {
+		action: 'query',
+		redirects: 1,
+		titles: 'Template:' + mainTemplate,
+		format: 'json',
+		formatversion: 2
+	} ).then( ( data ) => {
+		const page = ( data && data.query && data.query.pages && data.query.pages[ 0 ] ) || {};
+		const canonical = page.title ? page.title.replace( /^Template:/, '' ) : mainTemplate;
+
 		// Step 2: fetch all redirects that point to canonical
-		return api.get({ 
-			action: "query", 
-			format: "json", 
-			formatversion: 2, 
-			prop: "redirects", 
-			titles: "Template:" + canonical 
-		}).then(function(d2) {
-			const p = (d2 && d2.query && d2.query.pages && d2.query.pages[0]) || {};
-			const redirects = (p.redirects || []).map(function(r) { 
-				return r.title ? r.title.replace(/^Template:/, "") : ""; 
-			}).filter(Boolean);
-			
-			shellTemplateAliases = [canonical].concat(redirects);
+		return api.get( {
+			action: 'query',
+			format: 'json',
+			formatversion: 2,
+			prop: 'redirects',
+			titles: 'Template:' + canonical
+		} ).then( ( d2 ) => {
+			const p = ( d2 && d2.query && d2.query.pages && d2.query.pages[ 0 ] ) || {};
+			const redirects = ( p.redirects || [] ).map( ( r ) => r.title ? r.title.replace( /^Template:/, '' ) : '' ).filter( Boolean );
+
+			shellTemplateAliases = [ canonical ].concat( redirects );
 			return shellTemplateAliases;
-		});
-	}).catch(function() {
+		} );
+	} ).catch( () => {
 		// Fallback to main template only
-		shellTemplateAliases = [mainTemplate];
+		shellTemplateAliases = [ mainTemplate ];
 		return shellTemplateAliases;
-	});
+	} );
 }
 
 export default config;

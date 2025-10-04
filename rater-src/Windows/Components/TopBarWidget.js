@@ -1,15 +1,15 @@
-import config from "../../config";
-import i18n from "../../i18n";
-import SuggestionLookupTextInputWidget from "./SuggestionLookupTextInputWidget";
-import {getBannerNames} from "../../getBanners";
+import config from '../../config';
+import i18n from '../../i18n';
+import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget';
+import { getBannerNames } from '../../getBanners';
 // <nowiki>
 
 // Helper function to remove the first matching prefix from banner name
-function removeBannerPrefix(bannerName) {
+function removeBannerPrefix( bannerName ) {
 	const prefixes = config.bannerNamePrefixes || [];
-	for (const prefix of prefixes) {
-		if (bannerName.toLowerCase().startsWith(prefix.toLowerCase())) {
-			return bannerName.substring(prefix.length);
+	for ( const prefix of prefixes ) {
+		if ( bannerName.toLowerCase().startsWith( prefix.toLowerCase() ) ) {
+			return bannerName.slice( prefix.length );
 		}
 	}
 	return bannerName;
@@ -28,118 +28,118 @@ function TopBarWidget( opts ) {
 	// Call parent constructor
 	TopBarWidget.super.call( this, opts );
 	this.$overlay = opts.$overlay;
-	
+
 	// Search box
 	this.searchBox = new SuggestionLookupTextInputWidget( {
-		placeholder: i18n.t("topbar-add-wikiproject"),
-		$element: $("<div style='display:inline-block; margin:0 -1px; width:calc(100% - 55px);'>"),
-		$overlay: this.$overlay,
+		placeholder: i18n.t( 'topbar-add-wikiproject' ),
+		$element: $( "<div style='display:inline-block; margin:0 -1px; width:calc(100% - 55px);'>" ),
+		$overlay: this.$overlay
 	} );
 	getBannerNames()
-		.then(banners => [
-			...banners.withRatings.map(bannerName => ({
-				label: removeBannerPrefix(bannerName),
+		.then( ( banners ) => [
+			...banners.withRatings.map( ( bannerName ) => ( {
+				label: removeBannerPrefix( bannerName ),
 				data: {
 					name: bannerName
 				}
-			})),
-			...banners.withoutRatings.map(bannerName => ({
-				label: removeBannerPrefix(bannerName),
+			} ) ),
+			...banners.withoutRatings.map( ( bannerName ) => ( {
+				label: removeBannerPrefix( bannerName ),
 				data: {
 					name: bannerName,
 					withoutRatings: true
 				}
-			})),
-			...banners.wrappers.map(bannerName => ({
-				label: removeBannerPrefix(bannerName) + " [template wrapper]",
+			} ) ),
+			...banners.wrappers.map( ( bannerName ) => ( {
+				label: removeBannerPrefix( bannerName ) + ' [template wrapper]',
 				data: {
 					name: bannerName,
 					wrapper: true
 				}
-			})),
-			...banners.notWPBM.map(bannerName => ({
-				label: removeBannerPrefix(bannerName),
+			} ) ),
+			...banners.notWPBM.map( ( bannerName ) => ( {
+				label: removeBannerPrefix( bannerName ),
 				data: {
 					name: bannerName
 				}
-			})),
-			...banners.inactive.map(bannerName => ({
-				label: removeBannerPrefix(bannerName) + " [inactive]",
+			} ) ),
+			...banners.inactive.map( ( bannerName ) => ( {
+				label: removeBannerPrefix( bannerName ) + ' [inactive]',
 				data: {
 					name: bannerName,
 					withoutRatings: true
 				}
-			})),
-			...banners.wir.map(bannerName => ({
-				label: bannerName + " [Women In Red meetup/initiative]",
+			} ) ),
+			...banners.wir.map( ( bannerName ) => ( {
+				label: bannerName + ' [Women In Red meetup/initiative]',
 				data: {
 					name: bannerName,
 					withoutRatings: true
 				}
-			}))
-		])
-		.then(bannerOptions => this.searchBox.setSuggestions(bannerOptions));
-	
+			} ) )
+		] )
+		.then( ( bannerOptions ) => this.searchBox.setSuggestions( bannerOptions ) );
+
 	// Add button
 	this.addBannerButton = new OO.ui.ButtonWidget( {
-		icon: "add",
-		title: i18n.t("button-add"),
-		flags: "progressive",
-		$element: $("<span style='float:right;margin: 0;transform: translateX(-12px);'>"),
+		icon: 'add',
+		title: i18n.t( 'button-add' ),
+		flags: 'progressive',
+		$element: $( "<span style='float:right;margin: 0;transform: translateX(-12px);'>" )
 	} );
-	var $searchContainer = $("<div style='display:inline-block; flex-shrink:1; flex-grow:100; min-width:250px; width:50%;'>")
-		.append(this.searchBox.$element, this.addBannerButton.$element);
+	const $searchContainer = $( "<div style='display:inline-block; flex-shrink:1; flex-grow:100; min-width:250px; width:50%;'>" )
+		.append( this.searchBox.$element, this.addBannerButton.$element );
 
 	// Set all classes/importances
 	// in the style of a popup button with a menu (is actually a dropdown with a hidden label, because that makes the coding easier.)
 	this.setAllDropDown = new OO.ui.DropdownWidget( {
-		icon: "tag",
-		label: i18n.t("topbar-set-all"),
+		icon: 'tag',
+		label: i18n.t( 'topbar-set-all' ),
 		invisibleLabel: true,
 		menu: {
 			items: [
 				new OO.ui.MenuSectionOptionWidget( {
-					label: i18n.t("topbar-classes")
+					label: i18n.t( 'topbar-classes' )
 				} ),
 				new OO.ui.MenuOptionWidget( {
-					data: {class: null},
-					label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">(" + i18n.t("topbar-no-class") + ")</span>")
+					data: { class: null },
+					label: new OO.ui.HtmlSnippet( '<span style="color:#777">(' + i18n.t( 'topbar-no-class' ) + ')</span>' )
 				} ),
-				...config.bannerDefaults.classes.map(classname => new OO.ui.MenuOptionWidget( {
-					data: {class: classname},
+				...config.bannerDefaults.classes.map( ( classname ) => new OO.ui.MenuOptionWidget( {
+					data: { class: classname },
 					label: classname
 				} )
 				),
 				new OO.ui.MenuSectionOptionWidget( {
-					label: i18n.t("topbar-importances")
+					label: i18n.t( 'topbar-importances' )
 				} ),
 				new OO.ui.MenuOptionWidget( {
-					data: {importance: null},
-					label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">(" + i18n.t("topbar-no-importance") + ")</span>")
+					data: { importance: null },
+					label: new OO.ui.HtmlSnippet( '<span style="color:#777">(' + i18n.t( 'topbar-no-importance' ) + ')</span>' )
 				} ),
-				...config.bannerDefaults.importances.map(importance => new OO.ui.MenuOptionWidget( {
-					data: {importance: importance},
+				...config.bannerDefaults.importances.map( ( importance ) => new OO.ui.MenuOptionWidget( {
+					data: { importance: importance },
 					label: importance
 				} )
 				)
 			]
 		},
-		$element: $("<span style=\"width:auto;display:inline-block;float:left;margin:0\" title='" + i18n.t("topbar-set-all") + "'>"),
-		$overlay: this.$overlay,
+		$element: $( "<span style=\"width:auto;display:inline-block;float:left;margin:0\" title='" + i18n.t( 'topbar-set-all' ) + "'>" ),
+		$overlay: this.$overlay
 	} );
 
 	// Remove all banners button
 	this.removeAllButton = new OO.ui.ButtonWidget( {
-		icon: "trash",
-		title: i18n.t("button-remove-all"),
-		flags: "destructive"
+		icon: 'trash',
+		title: i18n.t( 'button-remove-all' ),
+		flags: 'destructive'
 	} );
 
 	// Clear all parameters button
 	this.clearAllButton = new OO.ui.ButtonWidget( {
-		icon: "cancel",
-		title: i18n.t("button-clear-all"),
-		flags: "destructive"
+		icon: 'cancel',
+		title: i18n.t( 'button-clear-all' ),
+		flags: 'destructive'
 	} );
 
 	// Group the buttons together
@@ -148,70 +148,70 @@ function TopBarWidget( opts ) {
 			this.removeAllButton,
 			this.clearAllButton
 		],
-		$element: $("<span style='flex:1 0 auto;'>"),
+		$element: $( "<span style='flex:1 0 auto;'>" )
 	} );
 	// Include the dropdown in the group
-	this.menuButtons.$element.prepend(this.setAllDropDown.$element);
+	this.menuButtons.$element.prepend( this.setAllDropDown.$element );
 
 	// Put everything into a layout
-	this.$element.addClass("rater-topBarWidget")
-		.css({
-			"position": "fixed",
-			"width": "100%",
-			"background": "#ccc",
-			"display": "flex",
-			"flex-wrap": "wrap",
-			"justify-content": "space-around",
-			"margin": "-2px 0 0 0"
-		})
+	this.$element.addClass( 'rater-topBarWidget' )
+		.css( {
+			position: 'fixed',
+			width: '100%',
+			background: '#ccc',
+			display: 'flex',
+			'flex-wrap': 'wrap',
+			'justify-content': 'space-around',
+			margin: '-2px 0 0 0'
+		} )
 		.append(
 			$searchContainer,
 			this.menuButtons.$element
 		);
 
 	/* --- Event handling --- */
-	
-	this.searchBox.connect(this, {
-		"enter": "onSearchSelect",
-		"choose": "onSearchSelect"
-	});
-	this.addBannerButton.connect(this, {"click": "onSearchSelect"});
-	this.setAllDropDown.getMenu().connect(this, {"choose": "onRatingChoose"});
-	this.removeAllButton.connect(this, {"click": "onRemoveAllClick"});
-	this.clearAllButton.connect(this, {"click": "onClearAllClick"});
+
+	this.searchBox.connect( this, {
+		enter: 'onSearchSelect',
+		choose: 'onSearchSelect'
+	} );
+	this.addBannerButton.connect( this, { click: 'onSearchSelect' } );
+	this.setAllDropDown.getMenu().connect( this, { choose: 'onRatingChoose' } );
+	this.removeAllButton.connect( this, { click: 'onRemoveAllClick' } );
+	this.clearAllButton.connect( this, { click: 'onClearAllClick' } );
 }
 OO.inheritClass( TopBarWidget, OO.ui.PanelLayout );
 
-TopBarWidget.prototype.onSearchSelect = function(data) {
-	this.emit("searchSelect", data);
+TopBarWidget.prototype.onSearchSelect = function ( data ) {
+	this.emit( 'searchSelect', data );
 };
 
-TopBarWidget.prototype.onRatingChoose = function(item) {
+TopBarWidget.prototype.onRatingChoose = function ( item ) {
 	const data = item.getData();
-	if (data.class || data.class===null) {
-		this.emit("setClasses", data.class);
+	if ( data.class || data.class === null ) {
+		this.emit( 'setClasses', data.class );
 	}
-	if (data.importance || data.importance===null) {
-		this.emit("setImportances", data.importance);
+	if ( data.importance || data.importance === null ) {
+		this.emit( 'setImportances', data.importance );
 	}
 };
 
-TopBarWidget.prototype.onRemoveAllClick = function() {
-	this.emit("removeAll");
+TopBarWidget.prototype.onRemoveAllClick = function () {
+	this.emit( 'removeAll' );
 };
 
-TopBarWidget.prototype.onClearAllClick = function() {
-	this.emit("clearAll");
+TopBarWidget.prototype.onClearAllClick = function () {
+	this.emit( 'clearAll' );
 };
 
-TopBarWidget.prototype.setDisabled = function(disable) {
+TopBarWidget.prototype.setDisabled = function ( disable ) {
 	[
 		this.searchBox,
 		this.addBannerButton,
 		this.setAllDropDown,
 		this.removeAllButton,
 		this.clearAllButton
-	].forEach(widget => widget.setDisabled(disable));
+	].forEach( ( widget ) => widget.setDisabled( disable ) );
 };
 
 export default TopBarWidget;

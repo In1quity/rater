@@ -1,11 +1,11 @@
-import ParameterListWidget from "./ParameterListWidget";
-import ParameterWidget from "./ParameterWidget";
-import DropdownParameterWidget from "./DropdownParameterWidget";
-import SuggestionLookupTextInputWidget from "./SuggestionLookupTextInputWidget";
-import { filterAndMap, classMask, importanceMask } from "../../util";
-import {Template, getWithRedirectTo} from "../../Template";
-import HorizontalLayoutWidget from "./HorizontalLayoutWidget";
-import globalConfig from "../../config";
+import ParameterListWidget from './ParameterListWidget';
+import ParameterWidget from './ParameterWidget';
+import DropdownParameterWidget from './DropdownParameterWidget';
+import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget';
+import { filterAndMap, classMask, importanceMask } from '../../util';
+import { Template, getWithRedirectTo } from '../../Template';
+import HorizontalLayoutWidget from './HorizontalLayoutWidget';
+import globalConfig from '../../config';
 // <nowiki>
 
 function BannerWidget( template, config ) {
@@ -17,12 +17,12 @@ function BannerWidget( template, config ) {
 
 	/* --- PREFS --- */
 	this.preferences = config.preferences;
-	
+
 	/* --- PROPS --- */
 	this.paramData = template.paramData;
 	this.paramAliases = template.paramAliases || {};
-	this.classParamName = template.classParamName || "class";
-	this.importanceParamName = template.importanceParamName || "importance";
+	this.classParamName = template.classParamName || 'class';
+	this.importanceParamName = template.importanceParamName || 'importance';
 	this.parameterSuggestions = template.parameterSuggestions;
 	this.name = template.name;
 	this.wikitext = template.wikitext;
@@ -32,7 +32,7 @@ function BannerWidget( template, config ) {
 	this.mainText = template.getTitle().getMainText();
 	this.redirectTargetMainText = template.redirectTarget && template.redirectTarget.getMainText();
 	this.isShellTemplate = template.isShellTemplate();
-	this.changed = template.parameters.some(parameter => parameter.autofilled); // initially false, unless some parameters were autofilled
+	this.changed = template.parameters.some( ( parameter ) => parameter.autofilled ); // initially false, unless some parameters were autofilled
 	this.hasClassRatings = template.classes && template.classes.length;
 	this.hasImportanceRatings = template.importances && template.importances.length;
 	this.inactiveProject = template.inactiveProject;
@@ -40,148 +40,139 @@ function BannerWidget( template, config ) {
 	/* --- TITLE AND RATINGS --- */
 
 	this.removeButton = new OO.ui.ButtonWidget( {
-		icon: "trash",
-		label: "Remove banner",
-		title: "Remove banner",
-		flags: "destructive",
-		$element: $("<div style=\"width:100%\">")
+		icon: 'trash',
+		label: 'Remove banner',
+		title: 'Remove banner',
+		flags: 'destructive',
+		$element: $( '<div style="width:100%">' )
 	} );
 	this.clearButton = new OO.ui.ButtonWidget( {
-		icon: "cancel",
-		label: "Clear parameters",
-		title: "Clear parameters",
-		flags: "destructive",
-		$element: $("<div style=\"width:100%\">")
+		icon: 'cancel',
+		label: 'Clear parameters',
+		title: 'Clear parameters',
+		flags: 'destructive',
+		$element: $( '<div style="width:100%">' )
 	} );
-	this.removeButton.$element.find("a").css("width","100%");
-	this.clearButton.$element.find("a").css("width","100%");
+	this.removeButton.$element.find( 'a' ).css( 'width', '100%' );
+	this.clearButton.$element.find( 'a' ).css( 'width', '100%' );
 
 	this.titleButtonsGroup = new OO.ui.ButtonGroupWidget( {
 		items: [ this.removeButton,	this.clearButton ],
-		$element: $("<span style='width:100%;'>"),
+		$element: $( "<span style='width:100%;'>" )
 	} );
 
 	this.mainLabelPopupButton = new OO.ui.PopupButtonWidget( {
-		label: `{{${template.getTitle().getMainText()}}}${this.inactiveProject ? " (inactive)" : ""}`,
-		$element: $("<span style='display:inline-block;width:48%;margin-right:0;padding-right:8px'>"),
+		label: `{{${ template.getTitle().getMainText() }}}${ this.inactiveProject ? ' (inactive)' : '' }`,
+		$element: $( "<span style='display:inline-block;width:48%;margin-right:0;padding-right:8px'>" ),
 		$overlay: this.$overlay,
-		indicator:"down",
-		framed:false,
+		indicator: 'down',
+		framed: false,
 		popup: {
 			$content: this.titleButtonsGroup.$element,
 			width: 200,
 			padded: false,
-			align: "force-right",
+			align: 'force-right',
 			anchor: false
 		}
 	} );
 	this.mainLabelPopupButton.$element
-		.children("a").first().css({"font-size":"110%"})
-		.find("span.oo-ui-labelElement-label").css({"white-space":"normal"});
+		.children( 'a' ).first().css( { 'font-size': '110%' } )
+		.find( 'span.oo-ui-labelElement-label' ).css( { 'white-space': 'normal' } );
 
 	// Rating dropdowns
-	if (this.isShellTemplate) {
+	if ( this.isShellTemplate ) {
 		this.classDropdown = new DropdownParameterWidget( {
-			label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">Class</span>"),
+			label: new OO.ui.HtmlSnippet( '<span style="color:#777">Class</span>' ),
 			menu: {
 				items: [
 					new OO.ui.MenuOptionWidget( {
 						data: null,
-						label: new OO.ui.HtmlSnippet(`<span style="color:#777">(${config.isArticle ? "no class" : "auto-detect"})</span>`)
+						label: new OO.ui.HtmlSnippet( `<span style="color:#777">(${ config.isArticle ? 'no class' : 'auto-detect' })</span>` )
 					} ),
-					...globalConfig.bannerDefaults.classes.map( classname =>
-						new OO.ui.MenuOptionWidget( {
-							data: classname,
-							label: classname
-						} )
-					)
-				],
-			},
-			$overlay: this.$overlay,
-		} );
-		var shellClassParam = template.parameters.find(parameter => {
-			return isNameOrAliasOf(parameter.name, String(template.classParamName || "class").toLowerCase(), template.paramAliases);
-		});
-		this.classDropdown.getMenu().selectItemByData( shellClassParam && classMask(shellClassParam.value) );
-	} else if (this.hasClassRatings) {
-		// selectInitialValue helper is defined above
-		this.classDropdown = new DropdownParameterWidget( {
-			label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">Class</span>"),
-			menu: {
-				items: [
-					new OO.ui.MenuOptionWidget( {
-						data: null,
-						label: new OO.ui.HtmlSnippet(`<span style="color:#777">(${config.isArticle ? "inherit from shell" : "auto-detect"})</span>`)
-					} ),
-					...template.classes.map( classname =>
-						new OO.ui.MenuOptionWidget( {
-							data: classname,
-							label: classname
-						} )
-					)
-				],
-			},
-			$overlay: this.$overlay,
-		} );
-		var classParam = template.parameters.find(parameter => {
-			return isNameOrAliasOf(parameter.name, String(template.classParamName || "class").toLowerCase(), template.paramAliases);
-		});
-		var preClass = selectInitialValue(template.classes, classParam && classParam.value, classMask);
-		this.classDropdown.getMenu().selectItemByData(preClass);
-	}
-
-	if (this.hasImportanceRatings) {
-		this.importanceDropdown = new DropdownParameterWidget( {
-			label: new OO.ui.HtmlSnippet("<span style=\"color:#777\">Importance</span>"),
-			menu: {
-				items: [
-					new OO.ui.MenuOptionWidget( {
-						data: null, label: new OO.ui.HtmlSnippet(`<span style="color:#777">(${config.isArticle ? "no importance" : "auto-detect"})</span>`)
-					} ),
-					...template.importances.map(importance =>
-						new OO.ui.MenuOptionWidget( {
-							data: importance,
-							label: importance
-						} )
+					...globalConfig.bannerDefaults.classes.map( ( classname ) => new OO.ui.MenuOptionWidget( {
+						data: classname,
+						label: classname
+					} )
 					)
 				]
 			},
-			$overlay: this.$overlay,
+			$overlay: this.$overlay
 		} );
-		var importanceParam = template.parameters.find(parameter => {
-			return isNameOrAliasOf(parameter.name, String(template.importanceParamName || "importance").toLowerCase(), template.paramAliases);
-		});
-		var preImp = selectInitialValue(template.importances, importanceParam && importanceParam.value, importanceMask);
-		this.importanceDropdown.getMenu().selectItemByData(preImp);
+		const shellClassParam = template.parameters.find( ( parameter ) => isNameOrAliasOf( parameter.name, String( template.classParamName || 'class' ).toLowerCase(), template.paramAliases ) );
+		this.classDropdown.getMenu().selectItemByData( shellClassParam && classMask( shellClassParam.value ) );
+	} else if ( this.hasClassRatings ) {
+		// selectInitialValue helper is defined above
+		this.classDropdown = new DropdownParameterWidget( {
+			label: new OO.ui.HtmlSnippet( '<span style="color:#777">Class</span>' ),
+			menu: {
+				items: [
+					new OO.ui.MenuOptionWidget( {
+						data: null,
+						label: new OO.ui.HtmlSnippet( `<span style="color:#777">(${ config.isArticle ? 'inherit from shell' : 'auto-detect' })</span>` )
+					} ),
+					...template.classes.map( ( classname ) => new OO.ui.MenuOptionWidget( {
+						data: classname,
+						label: classname
+					} )
+					)
+				]
+			},
+			$overlay: this.$overlay
+		} );
+		const classParam = template.parameters.find( ( parameter ) => isNameOrAliasOf( parameter.name, String( template.classParamName || 'class' ).toLowerCase(), template.paramAliases ) );
+		const preClass = selectInitialValue( template.classes, classParam && classParam.value, classMask );
+		this.classDropdown.getMenu().selectItemByData( preClass );
+	}
+
+	if ( this.hasImportanceRatings ) {
+		this.importanceDropdown = new DropdownParameterWidget( {
+			label: new OO.ui.HtmlSnippet( '<span style="color:#777">Importance</span>' ),
+			menu: {
+				items: [
+					new OO.ui.MenuOptionWidget( {
+						data: null, label: new OO.ui.HtmlSnippet( `<span style="color:#777">(${ config.isArticle ? 'no importance' : 'auto-detect' })</span>` )
+					} ),
+					...template.importances.map( ( importance ) => new OO.ui.MenuOptionWidget( {
+						data: importance,
+						label: importance
+					} )
+					)
+				]
+			},
+			$overlay: this.$overlay
+		} );
+		const importanceParam = template.parameters.find( ( parameter ) => isNameOrAliasOf( parameter.name, String( template.importanceParamName || 'importance' ).toLowerCase(), template.paramAliases ) );
+		const preImp = selectInitialValue( template.importances, importanceParam && importanceParam.value, importanceMask );
+		this.importanceDropdown.getMenu().selectItemByData( preImp );
 	}
 
 	this.titleLayout = new OO.ui.HorizontalLayout( {
 		items: [ this.mainLabelPopupButton ]
 	} );
-	if (this.hasClassRatings || this.isShellTemplate) {
-		this.titleLayout.addItems([ this.classDropdown ]);
+	if ( this.hasClassRatings || this.isShellTemplate ) {
+		this.titleLayout.addItems( [ this.classDropdown ] );
 	}
-	if (this.hasImportanceRatings) {
-		this.titleLayout.addItems([ this.importanceDropdown ]);
+	if ( this.hasImportanceRatings ) {
+		this.titleLayout.addItems( [ this.importanceDropdown ] );
 	}
 
 	/* --- PARAMETERS LIST --- */
 
-	var parameterWidgets = filterAndMap(
+	const parameterWidgets = filterAndMap(
 		template.parameters,
-		param => {
+		( param ) => {
 			if ( this.isShellTemplate ) {
-				if (param.name == "1") {
+				if ( param.name == '1' ) {
 					this.shellParam1Value = param.value;
 					return false;
 				}
-				return !isNameOrAliasOf(param.name, String(template.classParamName || "class").toLowerCase(), template.paramAliases);
+				return !isNameOrAliasOf( param.name, String( template.classParamName || 'class' ).toLowerCase(), template.paramAliases );
 			}
-			var classCanon = String(template.classParamName || "class").toLowerCase();
-			var impCanon = String(template.importanceParamName || "importance").toLowerCase();
-			return !(isNameOrAliasOf(param.name, classCanon, template.paramAliases) || isNameOrAliasOf(param.name, impCanon, template.paramAliases));
+			const classCanon = String( template.classParamName || 'class' ).toLowerCase();
+			const impCanon = String( template.importanceParamName || 'importance' ).toLowerCase();
+			return !( isNameOrAliasOf( param.name, classCanon, template.paramAliases ) || isNameOrAliasOf( param.name, impCanon, template.paramAliases ) );
 		},
-		param => new ParameterWidget(param, template.paramData[param.name], {$overlay: this.$overlay})
+		( param ) => new ParameterWidget( param, template.paramData[ param.name ], { $overlay: this.$overlay } )
 	);
 
 	this.parameterList = new ParameterListWidget( {
@@ -191,103 +182,103 @@ function BannerWidget( template, config ) {
 
 	/* --- ADD PARAMETER SECTION --- */
 
-	this.addParameterNameInput = new SuggestionLookupTextInputWidget({
+	this.addParameterNameInput = new SuggestionLookupTextInputWidget( {
 		suggestions: template.parameterSuggestions,
-		placeholder: "parameter name",
-		$element: $("<div style='display:inline-block;width:40%'>"),
-		validate: function(val) {
-			let {validName, name, value} = this.getAddParametersInfo(val);
-			return (!name && !value) ? true : validName;
-		}.bind(this),
+		placeholder: 'parameter name',
+		$element: $( "<div style='display:inline-block;width:40%'>" ),
+		validate: function ( val ) {
+			const { validName, name, value } = this.getAddParametersInfo( val );
+			return ( !name && !value ) ? true : validName;
+		}.bind( this ),
 		allowSuggestionsWhenEmpty: true,
 		$overlay: this.$overlay
-	});
+	} );
 	this.updateAddParameterNameSuggestions();
-	this.addParameterValueInput = new SuggestionLookupTextInputWidget({
-		placeholder: "parameter value",
-		$element: $("<div style='display:inline-block;width:40%'>"),
-		validate: function(val) {
-			let {validValue, name, value} = this.getAddParametersInfo(null, val);
-			return (!name && !value) ? true : validValue;
-		}.bind(this),
+	this.addParameterValueInput = new SuggestionLookupTextInputWidget( {
+		placeholder: 'parameter value',
+		$element: $( "<div style='display:inline-block;width:40%'>" ),
+		validate: function ( val ) {
+			const { validValue, name, value } = this.getAddParametersInfo( null, val );
+			return ( !name && !value ) ? true : validValue;
+		}.bind( this ),
 		allowSuggestionsWhenEmpty: true,
 		$overlay: this.$overlay
-	});
-	this.addParameterButton = new OO.ui.ButtonWidget({
-		label: "Add",
-		icon: "add",
-		flags: "progressive"
-	}).setDisabled(true);
+	} );
+	this.addParameterButton = new OO.ui.ButtonWidget( {
+		label: 'Add',
+		icon: 'add',
+		flags: 'progressive'
+	} ).setDisabled( true );
 	this.addParameterControls = new HorizontalLayoutWidget( {
 		items: [
 			this.addParameterNameInput,
-			new OO.ui.LabelWidget({label:"="}),
+			new OO.ui.LabelWidget( { label: '=' } ),
 			this.addParameterValueInput,
 			this.addParameterButton
 		]
 	} );
 
-	this.addParameterLayout = new OO.ui.FieldLayout(this.addParameterControls, {
-		label: "Add parameter:",
-		align: "top"
-	}).toggle(false);
+	this.addParameterLayout = new OO.ui.FieldLayout( this.addParameterControls, {
+		label: 'Add parameter:',
+		align: 'top'
+	} ).toggle( false );
 	// A hack to make messages appear on their own line
-	this.addParameterLayout.$element.find(".oo-ui-fieldLayout-messages").css({
-		"clear": "both",
-		"padding-top": 0
-	});
+	this.addParameterLayout.$element.find( '.oo-ui-fieldLayout-messages' ).css( {
+		clear: 'both',
+		'padding-top': 0
+	} );
 
 	/* --- OVERALL LAYOUT/DISPLAY --- */
 
 	// Display the layout elements, and a rule
-	this.$element.addClass("rater-bannerWidget").append(
+	this.$element.addClass( 'rater-bannerWidget' ).append(
 		this.titleLayout.$element,
 		this.parameterList.$element,
 		this.addParameterLayout.$element
 	);
-	if (!this.isShellTemplate) {
-		this.$element.append( $("<hr>") );
+	if ( !this.isShellTemplate ) {
+		this.$element.append( $( '<hr>' ) );
 	}
 
-	if (this.isShellTemplate) {
-		this.$element.css({
-			"background": "#eee",
-			"border-radius": "10px",
-			"padding": "0 10px 5px",
-			"margin-bottom": "12px",
-			"font-size": "92%"			
-		});
+	if ( this.isShellTemplate ) {
+		this.$element.css( {
+			background: '#eee',
+			'border-radius': '10px',
+			padding: '0 10px 5px',
+			'margin-bottom': '12px',
+			'font-size': '92%'
+		} );
 	}
 
 	/* --- EVENT HANDLING --- */
 
-	if (this.hasClassRatings) {
-		this.classDropdown.connect( this, {"change": "onClassChange" } );
+	if ( this.hasClassRatings ) {
+		this.classDropdown.connect( this, { change: 'onClassChange' } );
 	}
-	if (this.hasImportanceRatings) {
-		this.importanceDropdown.connect( this, {"change": "onImportanceChange" } );
+	if ( this.hasImportanceRatings ) {
+		this.importanceDropdown.connect( this, { change: 'onImportanceChange' } );
 	}
 	this.parameterList.connect( this, {
-		"change": "onParameterChange",
-		"addParametersButtonClick": "showAddParameterInputs",
-		"updatedSize": "onUpdatedSize"
+		change: 'onParameterChange',
+		addParametersButtonClick: 'showAddParameterInputs',
+		updatedSize: 'onUpdatedSize'
 	} );
-	this.addParameterButton.connect(this, { "click": "onParameterAdd" });
-	this.addParameterNameInput.connect(this, {
-		"change": "onAddParameterNameChange",
-		"enter": "onAddParameterNameEnter",
-		"choose": "onAddParameterNameEnter"
-	});
-	this.addParameterValueInput.connect(this, {
-		"change": "onAddParameterValueChange",
-		"enter": "onAddParameterValueEnter",
-		"choose": "onAddParameterValueEnter"
-	});
-	this.removeButton.connect(this, {"click": "onRemoveButtonClick"}, );
-	this.clearButton.connect( this, {"click": "onClearButtonClick"} );
+	this.addParameterButton.connect( this, { click: 'onParameterAdd' } );
+	this.addParameterNameInput.connect( this, {
+		change: 'onAddParameterNameChange',
+		enter: 'onAddParameterNameEnter',
+		choose: 'onAddParameterNameEnter'
+	} );
+	this.addParameterValueInput.connect( this, {
+		change: 'onAddParameterValueChange',
+		enter: 'onAddParameterValueEnter',
+		choose: 'onAddParameterValueEnter'
+	} );
+	this.removeButton.connect( this, { click: 'onRemoveButtonClick' } );
+	this.clearButton.connect( this, { click: 'onClearButtonClick' } );
 
 	/* --- APPLY PREF -- */
-	if (this.preferences.bypassRedirects) {
+	if ( this.preferences.bypassRedirects ) {
 		this.bypassRedirect();
 	}
 
@@ -302,119 +293,117 @@ OO.inheritClass( BannerWidget, OO.ui.Widget );
  * @param {Object} config
  * @returns {Promise<BannerWidget>}
  */
-BannerWidget.newFromTemplateName = function(templateName, data, config) {
-	var template = new Template();
+BannerWidget.newFromTemplateName = function ( templateName, data, config ) {
+	const template = new Template();
 	template.name = templateName;
-	if (data && data.withoutRatings) {
+	if ( data && data.withoutRatings ) {
 		template.withoutRatings = true;
 	}
-	return getWithRedirectTo(template)
-		.then(function(template) {
-			return $.when(
-				template.setClassesAndImportances(),
-				template.setParamDataAndSuggestions()
-			).then(() => {
-				// Add missing required/suggested values
-				template.addMissingParams();
-				// Return the now-modified template
-				return template;
-			});
-		})
-		.then(template => new BannerWidget(template, config));
+	return getWithRedirectTo( template )
+		.then( ( template ) => $.when(
+			template.setClassesAndImportances(),
+			template.setParamDataAndSuggestions()
+		).then( () => {
+			// Add missing required/suggested values
+			template.addMissingParams();
+			// Return the now-modified template
+			return template;
+		} ) )
+		.then( ( template ) => new BannerWidget( template, config ) );
 };
 
-BannerWidget.prototype.onUpdatedSize = function() {
+BannerWidget.prototype.onUpdatedSize = function () {
 	// Emit an "updatedSize" event so the parent window can update size, if needed
-	this.emit("updatedSize");
+	this.emit( 'updatedSize' );
 };
 
-BannerWidget.prototype.setChanged = function() {
+BannerWidget.prototype.setChanged = function () {
 	this.changed = true;
-	this.emit("changed");
-	if (this.mainText === "WikiProject Biography" || this.redirectTargetMainText === "WikiProject Biography") {
+	this.emit( 'changed' );
+	if ( this.mainText === 'WikiProject Biography' || this.redirectTargetMainText === 'WikiProject Biography' ) {
 		// Emit event so BannerListWidget can update the banner shell template (if present)
-		this.emit("biographyBannerChange");		
+		this.emit( 'biographyBannerChange' );
 	}
 };
 
-BannerWidget.prototype.onParameterChange = function() {
+BannerWidget.prototype.onParameterChange = function () {
 	this.setChanged();
 	this.updateAddParameterNameSuggestions();
 };
 
-BannerWidget.prototype.onClassChange = function() {
+BannerWidget.prototype.onClassChange = function () {
 	this.setChanged();
 	this.classChanged = true;
-	var classItem = this.classDropdown.getMenu().findSelectedItem();
-	if (classItem && classItem.getData() == null ) {
+	const classItem = this.classDropdown.getMenu().findSelectedItem();
+	if ( classItem && classItem.getData() == null ) {
 		// clear selection
 		this.classDropdown.getMenu().selectItem();
 	}
 };
 
-BannerWidget.prototype.onImportanceChange = function() {
+BannerWidget.prototype.onImportanceChange = function () {
 	this.setChanged();
 	this.importanceChanged = true;
-	var importanceItem = this.importanceDropdown.getMenu().findSelectedItem();
-	if (importanceItem && importanceItem.getData() == null ) {
+	const importanceItem = this.importanceDropdown.getMenu().findSelectedItem();
+	if ( importanceItem && importanceItem.getData() == null ) {
 		// clear selection
 		this.importanceDropdown.getMenu().selectItem();
 	}
 };
 
-BannerWidget.prototype.showAddParameterInputs = function() {
-	this.addParameterLayout.toggle(true);
+BannerWidget.prototype.showAddParameterInputs = function () {
+	this.addParameterLayout.toggle( true );
 	this.addParameterNameInput.focus();
 	this.onUpdatedSize();
 };
 
-BannerWidget.prototype.getAddParametersInfo = function(nameInputVal, valueInputVal) {
-	var name = nameInputVal && nameInputVal.trim() || this.addParameterNameInput.getValue().trim();
-	var paramAlreadyIncluded = name === "class" ||
-		name === "importance" ||
-		(name === "1" && this.isShellTemplate) ||
-		this.parameterList.getParameterItems().some(paramWidget => paramWidget.name === name);
-	var value = valueInputVal && valueInputVal.trim() || this.addParameterValueInput.getValue().trim();
-	var autovalue = name && this.paramData[name] && this.paramData[name].autovalue || null;
+BannerWidget.prototype.getAddParametersInfo = function ( nameInputVal, valueInputVal ) {
+	const name = nameInputVal && nameInputVal.trim() || this.addParameterNameInput.getValue().trim();
+	const paramAlreadyIncluded = name === 'class' ||
+		name === 'importance' ||
+		( name === '1' && this.isShellTemplate ) ||
+		this.parameterList.getParameterItems().some( ( paramWidget ) => paramWidget.name === name );
+	const value = valueInputVal && valueInputVal.trim() || this.addParameterValueInput.getValue().trim();
+	const autovalue = name && this.paramData[ name ] && this.paramData[ name ].autovalue || null;
 	return {
-		validName: !!(name && !paramAlreadyIncluded),
-		validValue: !!(value || autovalue),
-		isAutovalue: !!(!value && autovalue),
-		isAlreadyIncluded: !!(name && paramAlreadyIncluded),
+		validName: !!( name && !paramAlreadyIncluded ),
+		validValue: !!( value || autovalue ),
+		isAutovalue: !!( !value && autovalue ),
+		isAlreadyIncluded: !!( name && paramAlreadyIncluded ),
 		name,
 		value,
 		autovalue
 	};
 };
 
-BannerWidget.prototype.onAddParameterNameChange = function() {
-	let { validName, validValue, isAutovalue, isAlreadyIncluded, name, autovalue } = this.getAddParametersInfo();
+BannerWidget.prototype.onAddParameterNameChange = function () {
+	const { validName, validValue, isAutovalue, isAlreadyIncluded, name, autovalue } = this.getAddParametersInfo();
 	// Set value input placeholder as the autovalue
-	this.addParameterValueInput.$input.attr( "placeholder",  autovalue || "" );
+	this.addParameterValueInput.$input.attr( 'placeholder', autovalue || '' );
 	// Set suggestions, if the parameter has a list of allowed values
-	var allowedValues = this.paramData[name] &&
-		this.paramData[name].allowedValues && 
-		this.paramData[name].allowedValues.map(val => {return {data: val, label:val}; });
-	this.addParameterValueInput.setSuggestions(allowedValues || []);
+	const allowedValues = this.paramData[ name ] &&
+		this.paramData[ name ].allowedValues &&
+		this.paramData[ name ].allowedValues.map( ( val ) => ( { data: val, label: val } ) );
+	this.addParameterValueInput.setSuggestions( allowedValues || [] );
 	// Set button disabled state based on validity
-	this.addParameterButton.setDisabled(!validName || !validValue);
+	this.addParameterButton.setDisabled( !validName || !validValue );
 	// Show notice if autovalue will be used
-	this.addParameterLayout.setNotices( validName && isAutovalue ? ["Parameter value will be autofilled"] : [] );
+	this.addParameterLayout.setNotices( validName && isAutovalue ? [ 'Parameter value will be autofilled' ] : [] );
 	// Show error is the banner already has the parameter set
-	this.addParameterLayout.setErrors( isAlreadyIncluded ? ["Parameter is already present"] : [] );
+	this.addParameterLayout.setErrors( isAlreadyIncluded ? [ 'Parameter is already present' ] : [] );
 };
 
-BannerWidget.prototype.onAddParameterNameEnter = function() {
+BannerWidget.prototype.onAddParameterNameEnter = function () {
 	this.addParameterValueInput.focus();
 };
 
-BannerWidget.prototype.onAddParameterValueChange = function() {
-	let { validName, validValue, isAutovalue } = this.getAddParametersInfo();
-	this.addParameterButton.setDisabled(!validName || !validValue);
-	this.addParameterLayout.setNotices( validName && isAutovalue ? ["Parameter value will be autofilled"] : [] ); 
+BannerWidget.prototype.onAddParameterValueChange = function () {
+	const { validName, validValue, isAutovalue } = this.getAddParametersInfo();
+	this.addParameterButton.setDisabled( !validName || !validValue );
+	this.addParameterLayout.setNotices( validName && isAutovalue ? [ 'Parameter value will be autofilled' ] : [] );
 };
 
-BannerWidget.prototype.onAddParameterValueEnter = function() {
+BannerWidget.prototype.onAddParameterValueEnter = function () {
 	// Make sure button state has been updated
 	this.onAddParameterValueChange();
 	// Do nothing if button is disabled (i.e. name and/or value are invalid)
@@ -425,43 +414,43 @@ BannerWidget.prototype.onAddParameterValueEnter = function() {
 	this.onParameterAdd();
 };
 
-BannerWidget.prototype.onParameterAdd = function() {
-	let { validName, validValue, name, value, autovalue }  = this.getAddParametersInfo();
-	if (!validName || !validValue) {
+BannerWidget.prototype.onParameterAdd = function () {
+	const { validName, validValue, name, value, autovalue } = this.getAddParametersInfo();
+	if ( !validName || !validValue ) {
 		// Error should already be shown via onAddParameter...Change methods
 		return;
 	}
-	var newParameter = new ParameterWidget(
+	const newParameter = new ParameterWidget(
 		{
-			"name": name,
-			"value": value || autovalue
+			name: name,
+			value: value || autovalue
 		},
-		this.paramData[name],
-		{$overlay: this.$overlay}
+		this.paramData[ name ],
+		{ $overlay: this.$overlay }
 	);
-	this.parameterList.addItems([newParameter]);
-	this.addParameterNameInput.setValue("");
-	this.addParameterValueInput.setValue("");
+	this.parameterList.addItems( [ newParameter ] );
+	this.addParameterNameInput.setValue( '' );
+	this.addParameterValueInput.setValue( '' );
 	this.addParameterNameInput.$input.focus();
 };
 
-BannerWidget.prototype.updateAddParameterNameSuggestions = function() {
-	let paramsInUse = {};
+BannerWidget.prototype.updateAddParameterNameSuggestions = function () {
+	const paramsInUse = {};
 	this.parameterList.getParameterItems().forEach(
-		paramWidget => paramsInUse[paramWidget.name] = true
+		( paramWidget ) => paramsInUse[ paramWidget.name ] = true
 	);
 	this.addParameterNameInput.setSuggestions(
 		this.parameterSuggestions.filter(
-			suggestion => !paramsInUse[suggestion.data]
+			( suggestion ) => !paramsInUse[ suggestion.data ]
 		)
 	);
 };
 
-BannerWidget.prototype.onRemoveButtonClick = function() {
-	this.emit("remove");
+BannerWidget.prototype.onRemoveButtonClick = function () {
+	this.emit( 'remove' );
 };
 
-BannerWidget.prototype.onClearButtonClick = function() {
+BannerWidget.prototype.onClearButtonClick = function () {
 	this.parameterList.clearItems(
 		this.parameterList.getParameterItems()
 	);
@@ -473,14 +462,14 @@ BannerWidget.prototype.onClearButtonClick = function() {
 	}
 };
 
-BannerWidget.prototype.bypassRedirect = function() {
-	if (!this.redirectTargetMainText) {
+BannerWidget.prototype.bypassRedirect = function () {
+	if ( !this.redirectTargetMainText ) {
 		return;
 	}
 	// Store the bypassed name
 	this.bypassedName = this.name;
 	// Update title label
-	this.mainLabelPopupButton.setLabel(`{{${this.redirectTargetMainText}}}${this.inactiveProject ? " (inactive)" : ""}`);
+	this.mainLabelPopupButton.setLabel( `{{${ this.redirectTargetMainText }}}${ this.inactiveProject ? ' (inactive)' : '' }` );
 	// Update properties
 	this.name = this.redirectTargetMainText;
 	this.mainText = this.redirectTargetMainText;
@@ -488,51 +477,53 @@ BannerWidget.prototype.bypassRedirect = function() {
 	this.setChanged();
 };
 
-BannerWidget.prototype.makeWikitext = function() {
-	if (!this.changed && this.wikitext) {
+BannerWidget.prototype.makeWikitext = function () {
+	if ( !this.changed && this.wikitext ) {
 		return this.wikitext;
 	}
-	var pipe = this.pipeStyle;
-	var equals = this.equalsStyle;
-	var classItem = (this.hasClassRatings || this.isShellTemplate) && this.classDropdown.getMenu().findSelectedItem();
-	var classVal = classItem && classItem.getData();
-	var importanceItem = this.hasImportanceRatings && this.importanceDropdown.getMenu().findSelectedItem();
-	var importanceVal = importanceItem && importanceItem.getData();
+	const pipe = this.pipeStyle;
+	const equals = this.equalsStyle;
+	const classItem = ( this.hasClassRatings || this.isShellTemplate ) && this.classDropdown.getMenu().findSelectedItem();
+	const classVal = classItem && classItem.getData();
+	const importanceItem = this.hasImportanceRatings && this.importanceDropdown.getMenu().findSelectedItem();
+	const importanceVal = importanceItem && importanceItem.getData();
 
-	return ("{{" +
+	return ( '{{' +
 		this.name +
-		( (this.hasClassRatings || this.isShellTemplate) && classVal!=null ? `${pipe}${this.classParamName||"class"}${equals}${classVal||""}` : "" ) +
-		( this.hasImportanceRatings && importanceVal!=null ? `${pipe}${this.importanceParamName||"importance"}${equals}${importanceVal||""}` : "" ) +
+		( ( this.hasClassRatings || this.isShellTemplate ) && classVal != null ? `${ pipe }${ this.classParamName || 'class' }${ equals }${ classVal || '' }` : '' ) +
+		( this.hasImportanceRatings && importanceVal != null ? `${ pipe }${ this.importanceParamName || 'importance' }${ equals }${ importanceVal || '' }` : '' ) +
 		this.parameterList.getParameterItems()
-			.map(parameter => parameter.makeWikitext(pipe, equals))
-			.join("") +
-		this.endBracesStyle)
-		.replace(/\n+}}$/, "\n}}"); // avoid empty line at end like [[Special:Diff/925982142]]
+			.map( ( parameter ) => parameter.makeWikitext( pipe, equals ) )
+			.join( '' ) +
+		this.endBracesStyle )
+		.replace( /\n+}}$/, '\n}}' ); // avoid empty line at end like [[Special:Diff/925982142]]
 };
 
-BannerWidget.prototype.setPreferences = function(prefs) {
+BannerWidget.prototype.setPreferences = function ( prefs ) {
 	this.preferences = prefs;
-	if (this.preferences.bypassRedirects) {
+	if ( this.preferences.bypassRedirects ) {
 		this.bypassRedirect();
 	}
-	this.parameterList.setPreferences(prefs);
+	this.parameterList.setPreferences( prefs );
 };
 
 // Helpers
-var isNameOrAliasOf = function(paramName, canonicalLower, aliasMap){
-	var n = String(paramName).toLowerCase();
-	if ( n === canonicalLower ) { return true; }
-	var aliasCanon = aliasMap && aliasMap[paramName];
-	return !!(aliasCanon && String(aliasCanon).toLowerCase() === canonicalLower);
+var isNameOrAliasOf = function ( paramName, canonicalLower, aliasMap ) {
+	const n = String( paramName ).toLowerCase();
+	if ( n === canonicalLower ) {
+		return true;
+	}
+	const aliasCanon = aliasMap && aliasMap[ paramName ];
+	return !!( aliasCanon && String( aliasCanon ).toLowerCase() === canonicalLower );
 };
 
-var selectInitialValue = function(options, rawValue, maskFn){
-	var out = rawValue;
-	if (out && Array.isArray(options) && options.length) {
-		var exact = options.find(function(v){ return String(v).toLowerCase() === String(out).toLowerCase(); });
-		out = exact || (maskFn ? maskFn(out) : out);
+var selectInitialValue = function ( options, rawValue, maskFn ) {
+	let out = rawValue;
+	if ( out && Array.isArray( options ) && options.length ) {
+		const exact = options.find( ( v ) => String( v ).toLowerCase() === String( out ).toLowerCase() );
+		out = exact || ( maskFn ? maskFn( out ) : out );
 	} else {
-		out = maskFn ? maskFn(out) : out;
+		out = maskFn ? maskFn( out ) : out;
 	}
 	return out;
 };
