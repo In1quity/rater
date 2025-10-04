@@ -6,10 +6,11 @@
   "browser": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint:es5": "jshint index.js",
-    "lint:es6": "eslint index.js \"rater-src/**\"",
+    "lint:eslint": "eslint index.js \"rater-src/**\"",
     "lint:fix": "eslint index.js \"rater-src/**\" --fix",
-    "lint": "npm run lint:es6 && npm run lint:es5",
+    "lint": "npm run lint:eslint",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md}\"",
     "build:bundle": "browserify rater-src/App.js --debug -t babelify --outfile dist/rater.js",
     "build:minify": "uglifyjs dist/rater.js --compress -b ascii_only=true,beautify=false --output dist/rater.min.js",
     "build:concat": "concat-cli -f \"comment-top.js\" dist/rater.min.js \"comment-bottom.js\" -o dist/rater.min.js",
@@ -25,13 +26,19 @@
   },
   "license": "(MIT OR CC-BY-4.0)",
   "devDependencies": {
-    "@babel/core": "^7.9.0",
-    "@babel/preset-env": "^7.9.0",
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
     "babelify": "^10.0.0",
-    "browserify": "^16.5.0",
+    "browserify": "^17.0.1",
     "concat-cli": "^4.0.0",
-    "eslint": "^6.8.0",
-    "jshint": "^2.11.0",
-    "uglify-js": "^3.8.0"
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-es-x": "^9.1.0",
+    "eslint-plugin-jsdoc": "^57.0.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-security": "^3.0.1",
+    "eslint-plugin-unicorn": "^61.0.2",
+    "prettier": "^3.6.2",
+    "uglify-js": "^3.19.3"
   }
 }

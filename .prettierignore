@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.min.js
+*.bundle.js
+package-lock.json
+.git/
+.github/
+*.log
+coverage/
+.nyc_output/
