@@ -1,197 +1,199 @@
-import config from "./config";
-import i18n from "./i18n";
-import API from "./api";
-import { parseTemplates, getWithRedirectTo } from "./Template";
-import {getBannerNames} from "./getBanners";
-import * as cache from "./cache";
-import windowManager from "./windowManager";
-import { getPrefs } from "./prefs";
-import { filterAndMap } from "./util";
+import config from './config';
+import i18n from './i18n';
+import API from './api';
+import { parseTemplates, getWithRedirectTo } from './Template';
+import { getBannerNames } from './getBanners';
+import * as cache from './cache';
+import windowManager from './windowManager';
+import { getPrefs } from './prefs';
+import { filterAndMap } from './util';
 // <nowiki>
 
-var setupRater = function(clickEvent) {
+const setupRater = function ( clickEvent ) {
 	if ( clickEvent ) {
 		clickEvent.preventDefault();
 	}
 
-	var setupCompletedPromise = $.Deferred();
-    
-	var currentPage = mw.Title.newFromText(config.mw.wgPageName);
-	var talkPage = currentPage && currentPage.getTalkPage();
-	var subjectPage = currentPage && currentPage.getSubjectPage();
-	var subjectIsArticle = config.mw.wgNamespaceNumber <= 1;
- 
+	const setupCompletedPromise = $.Deferred();
+
+	const currentPage = mw.Title.newFromText( config.mw.wgPageName );
+	const talkPage = currentPage && currentPage.getTalkPage();
+	const subjectPage = currentPage && currentPage.getSubjectPage();
+	const subjectIsArticle = config.mw.wgNamespaceNumber <= 1;
+
 	// Get preferences (task 0)
-	var prefsPromise = getPrefs();
+	const prefsPromise = getPrefs();
 
 	// Get lists of all banners (task 1)
-	var bannersPromise = getBannerNames();
+	const bannersPromise = getBannerNames();
 
 	// Load talk page (task 2)
-	var loadTalkPromise = API.get( {
-		action: "query",
-		prop: "revisions",
-		rvprop: "content",
-		rvsection: "0",
+	const loadTalkPromise = API.get( {
+		action: 'query',
+		prop: 'revisions',
+		rvprop: 'content',
+		rvsection: '0',
 		titles: talkPage.getPrefixedText(),
 		indexpageids: 1
-	} ).then(function (result) {
-		var id = result.query.pageids;		
-		var wikitext = ( id < 0 ) ? "" : result.query.pages[id].revisions[0]["*"];
+	} ).then( ( result ) => {
+		const id = result.query.pageids;
+		const wikitext = ( id < 0 ) ? '' : result.query.pages[ id ].revisions[ 0 ][ '*' ];
 		return wikitext;
-	});
+	} );
 
 	// Parse talk page for banners (task 3)
-	var parseTalkPromise = loadTalkPromise.then(wikitext => parseTemplates(wikitext, true)) // Get all templates
-		.then(templates => templates.filter(template => template.getTitle() !== null)) // Filter out invalid templates (e.g. parser functions)
-		.then(templates => getWithRedirectTo(templates)) // Check for redirects
-		.then(templates => {
-			return bannersPromise.then((allBanners) => { // Get list of all banner templates
-				return filterAndMap(
-					templates, 			
-					// Filter out non-banners
-					template => { 
-						if (template.isShellTemplate()) { return true; }
-						var mainText = template.redirectTarget
-							? template.redirectTarget.getMainText()
-							: template.getTitle().getMainText();
-						return allBanners.withRatings.includes(mainText) || 
-						allBanners.withoutRatings.includes(mainText) ||
-						allBanners.wrappers.includes(mainText) ||
-						allBanners.notWPBM.includes(mainText) ||
-						allBanners.inactive.includes(mainText) ||
-						allBanners.wir.includes(mainText);
-					},
-					// Set additional properties if needed
-					template => {
-						var mainText = template.redirectTarget
-							? template.redirectTarget.getMainText()
-							: template.getTitle().getMainText();
-						if (allBanners.wrappers.includes(mainText)) {
-							template.redirectTarget = mw.Title.newFromText("Template:Subst:" + mainText);
-						}
-						if (
-							allBanners.withoutRatings.includes(mainText) ||
-							allBanners.wir.includes(mainText)
-						) {
-							template.withoutRatings = true;
-						}
-						if ( allBanners.inactive.includes(mainText) ) {
-							template.inactiveProject = true;
-						}
-						return template;
+	const parseTalkPromise = loadTalkPromise.then( ( wikitext ) => parseTemplates( wikitext, true ) ) // Get all templates
+		.then( ( templates ) => templates.filter( ( template ) => template.getTitle() !== null ) ) // Filter out invalid templates (e.g. parser functions)
+		.then( ( templates ) => getWithRedirectTo( templates ) ) // Check for redirects
+		.then( ( templates ) => bannersPromise.then( ( allBanners ) => // Get list of all banner templates
+			filterAndMap(
+				templates,
+				// Filter out non-banners
+				( template ) => {
+					if ( template.isShellTemplate() ) {
+						return true;
 					}
-				);
-			});
-		});
-	
+					const mainText = template.redirectTarget ?
+						template.redirectTarget.getMainText() :
+						template.getTitle().getMainText();
+					return allBanners.withRatings.includes( mainText ) ||
+						allBanners.withoutRatings.includes( mainText ) ||
+						allBanners.wrappers.includes( mainText ) ||
+						allBanners.notWPBM.includes( mainText ) ||
+						allBanners.inactive.includes( mainText ) ||
+						allBanners.wir.includes( mainText );
+				},
+				// Set additional properties if needed
+				( template ) => {
+					const mainText = template.redirectTarget ?
+						template.redirectTarget.getMainText() :
+						template.getTitle().getMainText();
+					if ( allBanners.wrappers.includes( mainText ) ) {
+						template.redirectTarget = mw.Title.newFromText( 'Template:Subst:' + mainText );
+					}
+					if (
+						allBanners.withoutRatings.includes( mainText ) ||
+							allBanners.wir.includes( mainText )
+					) {
+						template.withoutRatings = true;
+					}
+					if ( allBanners.inactive.includes( mainText ) ) {
+						template.inactiveProject = true;
+					}
+					return template;
+				}
+			)
+		) );
+
 	// Retrieve and store TemplateData first, then classes/importances (task 4)
-	var templateDetailsPromise = parseTalkPromise.then(function(templates) {
-		var perTemplate = templates.map(function(template){
-			if (template.isShellTemplate()) { return $.Deferred().resolve(); }
-			return template.setParamDataAndSuggestions().then(function(){
-				return template.setClassesAndImportances();
-			});
-		});
-		return $.when.apply(null, perTemplate).then(function(){
-			templates.forEach(function(t){ t.addMissingParams(); });
+	const templateDetailsPromise = parseTalkPromise.then( ( templates ) => {
+		const perTemplate = templates.map( ( template ) => {
+			if ( template.isShellTemplate() ) {
+				return $.Deferred().resolve();
+			}
+			return template.setParamDataAndSuggestions().then( () => template.setClassesAndImportances() );
+		} );
+		return $.when.apply( null, perTemplate ).then( () => {
+			templates.forEach( ( t ) => {
+				t.addMissingParams();
+			} );
 			return templates;
-		});
-	});
+		} );
+	} );
 
 	// Check subject page features (task 5) - but don't error out if request fails
-	var subjectPageCheckPromise = API.get({
-		action: "query",
-		format: "json",
-		formatversion: "2",
-		prop: "categories",
+	const subjectPageCheckPromise = API.get( {
+		action: 'query',
+		format: 'json',
+		formatversion: '2',
+		prop: 'categories',
 		titles: subjectPage.getPrefixedText(),
 		redirects: 1,
-		clcategories: Object.values(config.subjectPageCategories)
-	}).then(response => {
+		clcategories: Object.values( config.subjectPageCategories )
+	} ).then( ( response ) => {
 		if ( !response || !response.query || !response.query.pages ) {
 			return null;
 		}
-		const redirectTarget = response.query.redirects && response.query.redirects[0].to || false;
+		const redirectTarget = response.query.redirects && response.query.redirects[ 0 ].to || false;
 		if ( redirectTarget || !subjectIsArticle ) {
 			return { redirectTarget };
 		}
-		const page = response.query.pages[0];
-		const hasCategory = category => page.categories && page.categories.find(cat => cat.title === category);
+		const page = response.query.pages[ 0 ];
+		const hasCategory = ( category ) => page.categories && page.categories.find( ( cat ) => cat.title === category );
 		return {
 			redirectTarget,
-			disambig: hasCategory(config.subjectPageCategories.disambig),
-			stubtag: hasCategory(config.subjectPageCategories.stub),
-			isGA: hasCategory(config.subjectPageCategories.goodArticle),
-			isFA: hasCategory(config.subjectPageCategories.featuredArticle),
-			isFL: hasCategory(config.subjectPageCategories.featuredList),
-			isList: !hasCategory(config.subjectPageCategories.featuredList) && /^Lists? of/.test(subjectPage.getPrefixedText())
+			disambig: hasCategory( config.subjectPageCategories.disambig ),
+			stubtag: hasCategory( config.subjectPageCategories.stub ),
+			isGA: hasCategory( config.subjectPageCategories.goodArticle ),
+			isFA: hasCategory( config.subjectPageCategories.featuredArticle ),
+			isFL: hasCategory( config.subjectPageCategories.featuredList ),
+			isList: !hasCategory( config.subjectPageCategories.featuredList ) && /^Lists? of/.test( subjectPage.getPrefixedText() )
 		};
-	}).catch(() => null); // Failure ignored
+	} ).catch( () => null ); // Failure ignored
 
 	// Retrieve rating from ORES (task 6, only needed for articles) - but don't error out if request fails
-	var shouldGetOres = ( subjectIsArticle ); // TODO: Don't need to get ORES for redirects or disambigs
+	const shouldGetOres = ( subjectIsArticle ); // TODO: Don't need to get ORES for redirects or disambigs
 	if ( shouldGetOres ) {
-		var latestRevIdPromise = !currentPage.isTalkPage()
-			? $.Deferred().resolve(config.mw.wgRevisionId)
-			: API.get( {
-				action: "query",
-				format: "json",
-				prop: "revisions",
+		const latestRevIdPromise = !currentPage.isTalkPage() ?
+			$.Deferred().resolve( config.mw.wgRevisionId ) :
+			API.get( {
+				action: 'query',
+				format: 'json',
+				prop: 'revisions',
 				titles: subjectPage.getPrefixedText(),
-				rvprop: "ids",
+				rvprop: 'ids',
 				indexpageids: 1
-			} ).then(function(result) {
-				if (result.query.redirects) {
+			} ).then( ( result ) => {
+				if ( result.query.redirects ) {
 					return false;
 				}
-				var id = result.query.pageids;
-				var page = result.query.pages[id];
-				if (page.missing === "") {
+				const id = result.query.pageids;
+				const page = result.query.pages[ id ];
+				if ( page.missing === '' ) {
 					return false;
 				}
 				if ( id < 0 ) {
 					return $.Deferred().reject();
 				}
-				return page.revisions[0].revid;
-			});
-		var oresPromise = latestRevIdPromise.then(function(latestRevId) {
-			if (!latestRevId) {
+				return page.revisions[ 0 ].revid;
+			} );
+		var oresPromise = latestRevIdPromise.then( ( latestRevId ) => {
+			if ( !latestRevId ) {
 				return false;
 			}
-			return API.getORES(latestRevId, config.ores.wiki)
-				.then(function(result) {
-					var wiki = (config && config.ores && config.ores.wiki) || "enwiki";
-					var root = result && (result[wiki] || result[Object.keys(result)[0]]);
-					if (!root || !root.scores || !root.scores[latestRevId] || !root.scores[latestRevId].articlequality) {
-						return $.Deferred().reject("ok-but-empty");
+			return API.getORES( latestRevId, config.ores.wiki )
+				.then( ( result ) => {
+					const wiki = ( config && config.ores && config.ores.wiki ) || 'enwiki';
+					const root = result && ( result[ wiki ] || result[ Object.keys( result )[ 0 ] ] );
+					if ( !root || !root.scores || !root.scores[ latestRevId ] || !root.scores[ latestRevId ].articlequality ) {
+						return $.Deferred().reject( 'ok-but-empty' );
 					}
-					var data = root.scores[latestRevId].articlequality;
+					const data = root.scores[ latestRevId ].articlequality;
 					if ( data.error ) {
-						return $.Deferred().reject(data.error.type, data.error.message);
+						return $.Deferred().reject( data.error.type, data.error.message );
 					}
 					const prediction = data.score.prediction;
 					const probabilities = data.score.probability;
-					const tiers = (config && config.ores && Array.isArray(config.ores.topTierClasses)) ? config.ores.topTierClasses : ["FA","GA"];
-					const baseline = (config && config.ores && config.ores.baselineClass) || "B";
-					if (tiers.includes(prediction)) {
-						const sum = tiers.reduce((acc, k) => acc + (probabilities[k] || 0), 0) + (probabilities[baseline] || 0);
+					const tiers = ( config && config.ores && Array.isArray( config.ores.topTierClasses ) ) ? config.ores.topTierClasses : [ 'FA', 'GA' ];
+					const baseline = ( config && config.ores && config.ores.baselineClass ) || 'B';
+					if ( tiers.includes( prediction ) ) {
+						const sum = tiers.reduce( ( acc, k ) => acc + ( probabilities[ k ] || 0 ), 0 ) + ( probabilities[ baseline ] || 0 );
 						return {
-							prediction: baseline + " " + i18n.t("ores-or-higher"),
-							probability: (sum * 100).toFixed(1) + "%"
+							prediction: baseline + ' ' + i18n.t( 'ores-or-higher' ),
+							probability: ( sum * 100 ).toFixed( 1 ) + '%'
 						};
 					}
 					return {
 						prediction,
-						probability: (probabilities[ prediction ]*100).toFixed(1)+"%"
+						probability: ( probabilities[ prediction ] * 100 ).toFixed( 1 ) + '%'
 					};
-				}).catch(() => null); // Failure ignored;
-		});
+				} ).catch( () => null ); // Failure ignored;
+		} );
 	}
 
 	// Open the load dialog
-	var isOpenedPromise = $.Deferred();
-	var loadDialogWin = windowManager.openWindow("loadDialog", {
+	const isOpenedPromise = $.Deferred();
+	const loadDialogWin = windowManager.openWindow( 'loadDialog', {
 		promises: [
 			bannersPromise,
 			loadTalkPromise,
@@ -202,10 +204,9 @@ var setupRater = function(clickEvent) {
 		],
 		ores: shouldGetOres,
 		isOpened: isOpenedPromise
-	});
+	} );
 
-	loadDialogWin.opened.then(isOpenedPromise.resolve);
-
+	loadDialogWin.opened.then( isOpenedPromise.resolve );
 
 	$.when(
 		prefsPromise,
@@ -215,8 +216,8 @@ var setupRater = function(clickEvent) {
 		shouldGetOres && oresPromise
 	).then(
 		// All succeded
-		function(preferences, talkWikitext, banners, subjectPageCheck, oresPredicition ) {
-			var result = {
+		( preferences, talkWikitext, banners, subjectPageCheck, oresPredicition ) => {
+			const result = {
 				success: true,
 				talkpage: talkPage,
 				subjectPage: subjectPage,
@@ -225,31 +226,35 @@ var setupRater = function(clickEvent) {
 				preferences: preferences,
 				isArticle: subjectIsArticle
 			};
-			if (subjectPageCheck) {
-				result = { ...result, ...subjectPageCheck };
+			if ( subjectPageCheck ) {
+				for ( const key in subjectPageCheck ) {
+					if ( Object.prototype.hasOwnProperty.call( subjectPageCheck, key ) ) {
+						result[ key ] = subjectPageCheck[ key ];
+					}
+				}
 			}
-			if (oresPredicition && subjectPageCheck && !subjectPageCheck.isGA && !subjectPageCheck.isFA && !subjectPageCheck.isFL) {
+			if ( oresPredicition && subjectPageCheck && !subjectPageCheck.isGA && !subjectPageCheck.isFA && !subjectPageCheck.isFL ) {
 				result.ores = oresPredicition;
 			}
-			windowManager.closeWindow("loadDialog", result);
-			
+			windowManager.closeWindow( 'loadDialog', result );
+
 		}
 	); // Any failures are handled by the loadDialog window itself
 
 	// On window closed, check data, and resolve/reject setupCompletedPromise
-	loadDialogWin.closed.then(function(data) {
-		if (data && data.success) {
+	loadDialogWin.closed.then( ( data ) => {
+		if ( data && data.success ) {
 			// Got everything needed: Resolve promise with this data
-			setupCompletedPromise.resolve(data);
-		} else if (data && data.error) {
+			setupCompletedPromise.resolve( data );
+		} else if ( data && data.error ) {
 			// There was an error: Reject promise with error code/info
-			setupCompletedPromise.reject(data.error.code, data.error.info);
+			setupCompletedPromise.reject( data.error.code, data.error.info );
 		} else {
 			// Window closed before completion: resolve promise without any data
-			setupCompletedPromise.resolve(null);
+			setupCompletedPromise.resolve( null );
 		}
 		cache.clearInvalidItems();
-	});
+	} );
 	return setupCompletedPromise;
 };
 

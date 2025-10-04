@@ -61,7 +61,7 @@ export default [
 				"@stylistic/key-spacing": ["error", { "beforeColon": false, "afterColon": true }],
 				"@stylistic/keyword-spacing": "error",
 				"@stylistic/linebreak-style": ["error", "unix"],
-				"@stylistic/max-len": ["warn", { "code": 100, "tabWidth": 4, "ignorePattern": "^[\\s]*(//|<!--) (es|style)lint-.+", "ignoreUrls": true, "ignoreComments": false, "ignoreRegExpLiterals": true, "ignoreStrings": true, "ignoreTemplateLiterals": true }],
+				"@stylistic/max-len": ["off", { "code": 100, "tabWidth": 4, "ignorePattern": "^[\\s]*(//|<!--) (es|style)lint-.+", "ignoreUrls": true, "ignoreComments": false, "ignoreRegExpLiterals": true, "ignoreStrings": true, "ignoreTemplateLiterals": true }],
 				"@stylistic/max-statements-per-line": ["error", { "max": 1 }],
 			"new-cap": ["error", { "newIsCap": true, "capIsNew": false, "properties": true }],
 				"@stylistic/new-parens": "error",

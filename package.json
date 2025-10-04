@@ -3,6 +3,7 @@
   "version": "2.7.2",
   "description": "Wikipedia userscript that helps assess pages for WikiProjects",
   "homepage": "https://github.com/evad37/rater",
+  "type": "module",
   "browser": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
