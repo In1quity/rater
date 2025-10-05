@@ -4,6 +4,7 @@ import esx from "eslint-plugin-es-x";
 import jsdoc from "eslint-plugin-jsdoc";
 import stylistic from "@stylistic/eslint-plugin";
 import json from "@eslint/json";
+import jsonc from "eslint-plugin-jsonc";
 import markdown from "@eslint/markdown";
 
 export default [
@@ -177,13 +178,15 @@ export default [
 	{
 		name: "rater/json",
 		files: ["**/*.json", "**/*.jsonc", "**/*.json5"],
-		plugins: { json, security },
+		plugins: { json, jsonc, security },
 		language: "json/json",
     rules: {
 			"json/no-duplicate-keys": "error",
-			"indent": ["error", "tab"],
-			"max-len": "off",
-			"strict": "off",
+			"jsonc/indent": ["error", "tab"],
+			"jsonc/array-bracket-spacing": ["error", "always"],
+			"jsonc/object-curly-spacing": ["error", "always"],
+			"jsonc/comma-dangle": ["error", "never"],
+			"jsonc/quotes": ["error", "double"],
 			"security/detect-bidi-characters": "off"
 		}
 	},
