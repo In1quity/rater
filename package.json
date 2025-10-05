@@ -8,12 +8,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint:eslint": "eslint index.js \"rater-src/**\"",
-    "lint:fix": "eslint index.js \"rater-src/**\" --fix",
-    "lint": "npm run lint:eslint",
+    "lint:stylelint": "stylelint \"rater-src/**/*.css\"",
+    "lint:fix": "eslint index.js \"rater-src/**\" --fix && stylelint \"rater-src/**/*.css\" --fix",
+    "lint": "npm run lint:eslint && npm run lint:stylelint",
     "build:dev": "esbuild rater-src/App.js --bundle --format=iife --global-name=RaterApp --outfile=dist/rater.js --sourcemap --target=es2017",
     "build:prod": "esbuild rater-src/App.js --bundle --format=iife --global-name=RaterApp --outfile=dist/rater.min.js --minify --target=es2017",
-    "build:concat": "concat-cli -f \"comment-top.js\" dist/rater.min.js \"comment-bottom.js\" -o dist/rater.min.js",
-    "build": "npm run lint && npm run build:prod && npm run build:concat"
+    "build:concat": "concat-cli -f \"comment-top.js\" dist/rater.min.js \"comment-bottom.js\" -o dist/rater.min.js && node build-css-inline.cjs",
+    "build": "npm run lint && npm run build:dev && npm run build:prod && npm run build:concat"
   },
   "author": {
     "name": "Evad37",
@@ -34,6 +35,8 @@
     "eslint-plugin-es-x": "^9.1.0",
     "eslint-plugin-jsdoc": "^57.0.8",
     "eslint-plugin-security": "^3.0.1",
-    "eslint-plugin-unicorn": "^61.0.2"
+    "eslint-plugin-unicorn": "^61.0.2",
+    "stylelint": "^16.25.0",
+    "stylelint-config-standard": "^39.0.0"
   }
 }

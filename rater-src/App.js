@@ -1,6 +1,6 @@
 import setupRater from './setup';
 import autoStart from './autostart';
-import styles from './css.js';
+import './styles.css';
 import API, { makeErrorMsg } from './api';
 import windowManager from './windowManager';
 import i18n from './i18n';
@@ -9,26 +9,16 @@ import config, { loadExternalConfig } from './config';
 
 function startApp() {
 	console.log( '[Rater] startApp called' );
-	let stylesheet;
 
 	const showMainWindow = ( data ) => {
 		if ( !data || !data.success ) {
 			return;
-		}
-		if ( stylesheet ) {
-			stylesheet.disabled = false;
-		} else {
-			stylesheet = mw.util.addCSS( styles );
 		}
 		// Add css class to body to enable background scrolling
 		document.getElementsByTagName( 'body' )[ 0 ].classList.add( 'rater-mainWindow-open' );
 		// Open the window
 		windowManager.openWindow( 'main', data )
 			.closed.then( ( result ) => {
-				// Disable/remove the css styles, so as to not interfere with other scripts/content/OOUI windows
-				if ( stylesheet ) {
-					stylesheet.disabled = true;
-				}
 				document.getElementsByTagName( 'body' )[ 0 ].classList.remove( 'rater-mainWindow-open' );
 				// Restart if needed
 				if ( result && result.restart ) {
