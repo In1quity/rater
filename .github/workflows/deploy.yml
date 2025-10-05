@@ -46,7 +46,7 @@ jobs:
         draft: false
         prerelease: false
         body: |
-          ${{ steps.tag_message.outputs.tag_message || 'Release ' + github.ref_name }}
+          ${{ steps.tag_message.outputs.tag_message || format('Release {0}', github.ref_name) }}
           
           ## Build Artifacts
           - `dist/rater.js` - Loader script (unminified)
