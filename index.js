@@ -8,7 +8,7 @@
 ***************************************************************************************************/
 // <nowiki>
 $.when(
-	// Page ready only; modules will be loaded on demand
+	mw.loader.using( [ 'mediawiki.util' ] ),
 	$.ready
 ).then( () => {
 	const conf = mw.config.get( [ 'wgNamespaceNumber', 'wgPageName' ] );
@@ -27,58 +27,34 @@ $.when(
 	// Add a portlet link that will load the main script and its dependencies on demand
 	const linkId = 'ca-rater';
 	if ( !document.getElementById( linkId ) ) {
-		const addLink = () => {
-			// Prefer MediaWiki utility API when available
-			if ( mw.util && typeof mw.util.addPortletLink === 'function' ) {
-				mw.util.addPortletLink( 'p-cactions', '#', 'Rater', linkId, 'Rate quality and importance', '5' );
-				return true;
-			}
-			// Fallback: try to append directly into the actions portlet list
-			const portlet = document.getElementById( 'p-cactions' );
-			const list = portlet && portlet.getElementsByTagName( 'ul' )[ 0 ];
-			if ( list ) {
-				const li = document.createElement( 'li' );
-				li.id = linkId;
-				const a = document.createElement( 'a' );
-				a.href = '#';
-				a.textContent = 'Rater';
-				a.title = 'Rate quality and importance';
-				li.appendChild( a );
-				list.appendChild( li );
-				return true;
-			}
-			return false;
-		};
-
-		if ( addLink() ) {
-			$( '#' + linkId ).on( 'click', ( event ) => {
-				event.preventDefault();
-				// Prevent duplicate button creation by returning existing link for the same id
-				const originalAddPortletLink = mw.util.addPortletLink;
-				mw.util.addPortletLink = function ( portlet, href, text, id, tooltip, accesskey ) {
-					if ( id === linkId ) {
-						const existing = document.getElementById( linkId );
-						if ( existing ) {
-							return existing;
-						}
+		mw.util.addPortletLink( 'p-cactions', '#', 'Rater', linkId, 'Rate quality and importance', '5' );
+		$( '#' + linkId ).on( 'click', ( event ) => {
+			event.preventDefault();
+			// Prevent duplicate button creation by returning existing link for the same id
+			const originalAddPortletLink = mw.util.addPortletLink;
+			mw.util.addPortletLink = function ( portlet, href, text, id, tooltip, accesskey ) {
+				if ( id === linkId ) {
+					const existing = document.getElementById( linkId );
+					if ( existing ) {
+						return existing;
 					}
-					return originalAddPortletLink.apply( this, arguments );
-				};
-				// Load required modules first, then load the main script
-				const reqModules = [
-					'mediawiki.util', 'mediawiki.api', 'mediawiki.Title',
-					'oojs-ui-core', 'oojs-ui-widgets', 'oojs-ui-windows',
-					'oojs-ui.styles.icons-content', 'oojs-ui.styles.icons-interactions',
-					'oojs-ui.styles.icons-moderation', 'oojs-ui.styles.icons-editing-core',
-					'mediawiki.widgets', 'mediawiki.widgets.NamespacesMultiselectWidget'
-				];
-				mw.loader.using( reqModules ).then( () => {
-					// Get the title using template substitution (so the same source file be used on both main and sandbox scripts)
-					const title = /* </nowiki> */ 'User:Iniquity/rater-core-test.js'; /* <nowiki> */
-					mw.loader.load( 'https://www.mediawiki.org/w/index.php?title=' + title + '&action=raw&ctype=text/javascript' );
-				} );
+				}
+				return originalAddPortletLink.apply( this, arguments );
+			};
+			// Load required modules first, then load the main script
+			const reqModules = [
+				'mediawiki.api', 'mediawiki.Title',
+				'oojs-ui-core', 'oojs-ui-widgets', 'oojs-ui-windows',
+				'oojs-ui.styles.icons-content', 'oojs-ui.styles.icons-interactions',
+				'oojs-ui.styles.icons-moderation', 'oojs-ui.styles.icons-editing-core',
+				'mediawiki.widgets', 'mediawiki.widgets.NamespacesMultiselectWidget'
+			];
+			mw.loader.using( reqModules ).then( () => {
+				// Get the title using template substitution (so the same source file be used on both main and sandbox scripts)
+				const title = /* </nowiki> */ 'User:Iniquity/rater-core-test.js'; /* <nowiki> */
+				mw.loader.load( 'https://www.mediawiki.org/w/index.php?title=' + title + '&action=raw&ctype=text/javascript' );
 			} );
-		}
+		} );
 	}
 } );
 // </nowiki>
