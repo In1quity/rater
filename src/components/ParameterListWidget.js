@@ -1,4 +1,5 @@
 // <nowiki>
+import i18n from '@services/i18n.js';
 
 /**
  * @cfg {OO.ui.Element[]} items Items to be added
@@ -46,12 +47,17 @@ const ParameterListWidget = function ParameterListWidget( config ) {
 
 	// Add the button that allows user to add more parameters
 	this.addParametersButton = new OO.ui.ButtonWidget( {
-		label: 'Add parameter',
+		label: i18n.t( 'button-add-parameter' ),
 		icon: 'add',
 		framed: false,
 		$element: $( "<span style='margin-bottom:0'>" )
 	} );
 	this.addItems( [ this.addParametersButton ] );
+
+	// Refresh label after i18n loads (defensive in case UI is constructed before i18n finishes)
+	i18n.load().then( () => {
+		this.addParametersButton.setLabel( i18n.t( 'button-add-parameter' ) );
+	} );
 
 	/* --- Events --- */
 
