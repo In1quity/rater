@@ -630,12 +630,12 @@ MainWindow.prototype.onSetClasses = function ( classVal ) {
 		shellTemplate.classDropdown.getMenu().selectItemByData( classVal );
 		shellTemplate.classDropdown.setAutofilled( false );
 	}
-    this.bannerList.items.forEach( ( banner ) => {
-        if ( banner.hasClassRatings && !banner.isShellTemplate ) {
-            banner.classDropdown.getMenu().selectItemByData( shellTemplate ? null : classVal );
-            banner.classDropdown.setAutofilled( false );
-        }
-    } );
+	this.bannerList.items.forEach( ( banner ) => {
+		if ( banner.hasClassRatings && !banner.isShellTemplate ) {
+			banner.classDropdown.getMenu().selectItemByData( shellTemplate ? null : classVal );
+			banner.classDropdown.setAutofilled( false );
+		}
+	} );
 };
 
 MainWindow.prototype.onSetImportances = function ( importanceVal ) {
@@ -740,7 +740,7 @@ MainWindow.prototype.makeEditSummary = function () {
 			// Not changed
 			return;
 		}
-        let newClass = banner.hasClassRatings && ( isNew || banner.classChanged ) && banner.classDropdown.getValue();
+		let newClass = banner.hasClassRatings && ( isNew || banner.classChanged ) && banner.classDropdown.getValue();
 		if ( newClass ) {
 			someClassesChanged = true;
 		}
