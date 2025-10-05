@@ -45,44 +45,43 @@ const setupRater = function ( clickEvent ) {
 	const parseTalkPromise = loadTalkPromise.then( ( wikitext ) => parseTemplates( wikitext, true ) ) // Get all templates
 		.then( ( templates ) => templates.filter( ( template ) => template.getTitle() !== null ) ) // Filter out invalid templates (e.g. parser functions)
 		.then( ( templates ) => getWithRedirectTo( templates ) ) // Check for redirects
-		.then( ( templates ) => bannersPromise.then( ( allBanners ) => // Get list of all banner templates
-			filterAndMap(
-				templates,
-				// Filter out non-banners
-				( template ) => {
-					if ( template.isShellTemplate() ) {
-						return true;
-					}
-					const mainText = template.redirectTarget ?
-						template.redirectTarget.getMainText() :
-						template.getTitle().getMainText();
-					return allBanners.withRatings.includes( mainText ) ||
+		.then( ( templates ) => bannersPromise.then( ( allBanners ) => filterAndMap( // Get list of all banner templates
+			templates,
+			// Filter out non-banners
+			( template ) => {
+				if ( template.isShellTemplate() ) {
+					return true;
+				}
+				const mainText = template.redirectTarget ?
+					template.redirectTarget.getMainText() :
+					template.getTitle().getMainText();
+				return allBanners.withRatings.includes( mainText ) ||
 						allBanners.withoutRatings.includes( mainText ) ||
 						allBanners.wrappers.includes( mainText ) ||
 						allBanners.notWPBM.includes( mainText ) ||
 						allBanners.inactive.includes( mainText ) ||
 						allBanners.wir.includes( mainText );
-				},
-				// Set additional properties if needed
-				( template ) => {
-					const mainText = template.redirectTarget ?
-						template.redirectTarget.getMainText() :
-						template.getTitle().getMainText();
-					if ( allBanners.wrappers.includes( mainText ) ) {
-						template.redirectTarget = mw.Title.newFromText( 'Template:Subst:' + mainText );
-					}
-					if (
-						allBanners.withoutRatings.includes( mainText ) ||
-							allBanners.wir.includes( mainText )
-					) {
-						template.withoutRatings = true;
-					}
-					if ( allBanners.inactive.includes( mainText ) ) {
-						template.inactiveProject = true;
-					}
-					return template;
+			},
+			// Set additional properties if needed
+			( template ) => {
+				const mainText = template.redirectTarget ?
+					template.redirectTarget.getMainText() :
+					template.getTitle().getMainText();
+				if ( allBanners.wrappers.includes( mainText ) ) {
+					template.redirectTarget = mw.Title.newFromText( 'Template:Subst:' + mainText );
 				}
-			)
+				if (
+					allBanners.withoutRatings.includes( mainText ) ||
+							allBanners.wir.includes( mainText )
+				) {
+					template.withoutRatings = true;
+				}
+				if ( allBanners.inactive.includes( mainText ) ) {
+					template.inactiveProject = true;
+				}
+				return template;
+			}
+		)
 		) );
 
 	// Retrieve and store TemplateData first, then classes/importances (task 4)
@@ -133,6 +132,7 @@ const setupRater = function ( clickEvent ) {
 
 	// Retrieve rating from ORES (task 6, only needed for articles) - but don't error out if request fails
 	const shouldGetOres = ( subjectIsArticle ); // TODO: Don't need to get ORES for redirects or disambigs
+	let oresPromise = null;
 	if ( shouldGetOres ) {
 		const latestRevIdPromise = !currentPage.isTalkPage() ?
 			$.Deferred().resolve( config.mw.wgRevisionId ) :
@@ -157,7 +157,7 @@ const setupRater = function ( clickEvent ) {
 				}
 				return page.revisions[ 0 ].revid;
 			} );
-		var oresPromise = latestRevIdPromise.then( ( latestRevId ) => {
+		oresPromise = latestRevIdPromise.then( ( latestRevId ) => {
 			if ( !latestRevId ) {
 				return false;
 			}

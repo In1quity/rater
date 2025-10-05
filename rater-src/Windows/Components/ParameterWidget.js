@@ -12,7 +12,7 @@ function ParameterWidget( parameter, paramData, config ) {
 	this.name = parameter.name;
 	this.value = parameter.value;
 	this.autofilled = parameter.autofilled;
-	this.isInvalid = parameter.value == null;
+	this.isInvalid = ( parameter.value === null || typeof parameter.value === 'undefined' );
 	this.paramData = paramData || {};
 	this.allowedValues = this.paramData.allowedValues || [];
 	this.isRequired = this.paramData.required;
@@ -24,15 +24,15 @@ function ParameterWidget( parameter, paramData, config ) {
 			this.allowedValues[ 1 ] = null;
 		/* fall-through */
 		case 2:
-			var isFirstAllowedVal = (
+			const isFirstAllowedVal = (
 				this.allowedValues.indexOf( parameter.value ) === 0 ||
 				this.allowedValues.map( normaliseYesNo ).indexOf( normaliseYesNo( parameter.value ) ) === 0
 			);
-			var isSecondAllowedVal = (
+			const isSecondAllowedVal = (
 				this.allowedValues.indexOf( parameter.value || null ) === 1 ||
 				this.allowedValues.map( normaliseYesNo ).indexOf( parameter.value ? normaliseYesNo( parameter.value ) : null ) === 1
 			);
-			var isIndeterminate = !isFirstAllowedVal && !isSecondAllowedVal;
+			const isIndeterminate = !isFirstAllowedVal && !isSecondAllowedVal;
 			this.checkbox = new OO.ui.CheckboxInputWidget( {
 				selected: isIndeterminate ? undefined : isFirstAllowedVal,
 				indeterminate: isIndeterminate ? true : undefined,
@@ -257,7 +257,7 @@ ParameterWidget.prototype.setValue = function ( val ) {
 	this.input.setValue( this.value );
 
 	// Update validity
-	this.isInvalid = this.value == null;
+	this.isInvalid = ( this.value === null || typeof this.value === 'undefined' );
 	this.invalidIcon.toggle( this.isInvalid );
 	this.$element.css( { background: this.isInvalid ? '#fddd' : '#fffe' } );
 

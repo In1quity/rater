@@ -57,11 +57,12 @@ function startApp() {
 			} );
 	};
 
-	const showSetupError = ( code, jqxhr ) => OO.ui.alert(
-		makeErrorMsg( code, jqxhr ),	{
-			title: i18n.t( 'app-setup-error' )
-		}
-	);
+	function showSetupError( code, jqxhr ) {
+		return OO.ui.alert(
+			makeErrorMsg( code, jqxhr ),
+			{ title: i18n.t( 'app-setup-error' ) }
+		);
+	}
 
 	// Invocation by portlet link
 	console.log( '[Rater] Adding portlet link' );

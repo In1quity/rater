@@ -2,11 +2,11 @@ import config from '../../config';
 import i18n from '../../i18n';
 // <nowiki>
 
-function PrefsFormWidget( config ) {
+function PrefsFormWidget( prefsConfig ) {
 	// Configuration initialization
-	config = config || {};
+	const prefsOptions = prefsConfig || {};
 	// Call parent constructor
-	PrefsFormWidget.super.call( this, config );
+	PrefsFormWidget.super.call( this, prefsOptions );
 
 	this.$element.addClass( 'rater-prefsFormWidget' );
 

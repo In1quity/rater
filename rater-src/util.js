@@ -37,7 +37,7 @@ const noWords = [
 	'0'
 ];
 const normaliseYesNo = function ( val ) {
-	if ( val == null ) {
+	if ( val === null || typeof val === 'undefined' ) {
 		return val;
 	}
 	const trimmedLcVal = val.trim().toLowerCase();

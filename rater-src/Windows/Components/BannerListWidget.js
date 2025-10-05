@@ -4,8 +4,8 @@ import { normaliseYesNo, filterAndMap, uniqueArray } from '../../util';
 import ParameterWidget from './ParameterWidget';
 // <nowiki>
 
-const BannerListWidget = function BannerListWidget( config ) {
-	config = config || {};
+const BannerListWidget = function BannerListWidget( widgetConfig ) {
+	widgetConfig = widgetConfig || {};
 
 	// Call parent constructor
 	BannerListWidget.parent.call( this, config );
@@ -15,9 +15,9 @@ const BannerListWidget = function BannerListWidget( config ) {
 	this.$element.addClass( 'rater-bannerListWidget' ).css( { padding: '20px 10px 16px 10px' } );
 
 	// Prefs
-	this.preferences = config.preferences;
+	this.preferences = widgetConfig.preferences;
 
-	this.oresClass = config.oresClass;
+	this.oresClass = widgetConfig.oresClass;
 
 	this.changed = false;
 
@@ -157,10 +157,10 @@ BannerListWidget.prototype.addItems = function ( items, index ) {
 	return this;
 };
 
-BannerListWidget.prototype.autofillClassRatings = function ( config ) {
-	config = config || {};
+BannerListWidget.prototype.autofillClassRatings = function ( options ) {
+	const autofillConfig = options || {};
 	// Only autofill if set in preferences
-	if ( !this.preferences.autofillClassFromOthers && !this.preferences.autofillClassFromOres && !config.forBannerShell ) {
+	if ( !this.preferences.autofillClassFromOthers && !this.preferences.autofillClassFromOres && !autofillConfig.forBannerShell ) {
 		return;
 	}
 	// Check what banners already have
@@ -199,10 +199,10 @@ BannerListWidget.prototype.autofillClassRatings = function ( config ) {
 			return;
 		}
 		const classItem = banner.classDropdown.getMenu().findSelectedItem();
-		if ( classItem && classItem.getData() && !config.forBannerShell ) {
+		if ( classItem && classItem.getData() && !widgetConfig.forBannerShell ) {
 			return;
 		}
-		if ( config.forBannerShell && !banner.isShellTemplate && classItem.getData() === autoClass ) {
+		if ( widgetConfig.forBannerShell && !banner.isShellTemplate && classItem.getData() === autoClass ) {
 			banner.classDropdown.getMenu().selectItemByData( null );
 			return;
 		}
@@ -255,7 +255,7 @@ BannerListWidget.prototype.makeWikitext = function () {
 	const shellParam1 = new ParameterWidget( {
 		name: '1',
 		value: '\n' + bannersWikitext + '\n' +
-			( shellTemplate.nonStandardTemplates	? shellTemplate.nonStandardTemplates + '\n' : '' )
+			( shellTemplate.nonStandardTemplates ? shellTemplate.nonStandardTemplates + '\n' : '' )
 	} );
 	shellTemplate.parameterList.addItems( [ shellParam1 ] );
 	const shellWikitext = shellTemplate.makeWikitext();

@@ -8,6 +8,27 @@ import HorizontalLayoutWidget from './HorizontalLayoutWidget';
 import globalConfig from '../../config';
 // <nowiki>
 
+// Helpers
+const isNameOrAliasOf = function ( paramName, canonicalLower, aliasMap ) {
+	const n = String( paramName ).toLowerCase();
+	if ( n === canonicalLower ) {
+		return true;
+	}
+	const aliasCanon = aliasMap && ( aliasMap[ paramName ] || aliasMap[ n ] );
+	return !!( aliasCanon && String( aliasCanon ).toLowerCase() === canonicalLower );
+};
+
+const selectInitialValue = function ( options, rawValue, maskFn ) {
+	let out = rawValue;
+	if ( out && Array.isArray( options ) && options.length ) {
+		const exact = options.find( ( v ) => String( v ).toLowerCase() === String( out ).toLowerCase() );
+		out = exact || ( maskFn ? maskFn( out ) : out );
+	} else {
+		out = maskFn ? maskFn( out ) : out;
+	}
+	return out;
+};
+
 function BannerWidget( template, config ) {
 	// Configuration initialization
 	config = config || {};
@@ -57,7 +78,7 @@ function BannerWidget( template, config ) {
 	this.clearButton.$element.find( 'a' ).css( 'width', '100%' );
 
 	this.titleButtonsGroup = new OO.ui.ButtonGroupWidget( {
-		items: [ this.removeButton,	this.clearButton ],
+		items: [ this.removeButton, this.clearButton ],
 		$element: $( "<span style='width:100%;'>" )
 	} );
 
@@ -162,7 +183,7 @@ function BannerWidget( template, config ) {
 		template.parameters,
 		( param ) => {
 			if ( this.isShellTemplate ) {
-				if ( param.name == '1' ) {
+				if ( param.name === '1' ) {
 					this.shellParam1Value = param.value;
 					return false;
 				}
@@ -300,16 +321,16 @@ BannerWidget.newFromTemplateName = function ( templateName, data, config ) {
 		template.withoutRatings = true;
 	}
 	return getWithRedirectTo( template )
-		.then( ( template ) => $.when(
-			template.setClassesAndImportances(),
-			template.setParamDataAndSuggestions()
+		.then( ( resolvedTemplate ) => $.when(
+			resolvedTemplate.setClassesAndImportances(),
+			resolvedTemplate.setParamDataAndSuggestions()
 		).then( () => {
 			// Add missing required/suggested values
-			template.addMissingParams();
+			resolvedTemplate.addMissingParams();
 			// Return the now-modified template
-			return template;
+			return resolvedTemplate;
 		} ) )
-		.then( ( template ) => new BannerWidget( template, config ) );
+		.then( ( finalTemplate ) => new BannerWidget( finalTemplate, config ) );
 };
 
 BannerWidget.prototype.onUpdatedSize = function () {
@@ -335,7 +356,7 @@ BannerWidget.prototype.onClassChange = function () {
 	this.setChanged();
 	this.classChanged = true;
 	const classItem = this.classDropdown.getMenu().findSelectedItem();
-	if ( classItem && classItem.getData() == null ) {
+	if ( classItem && classItem.getData() === null ) {
 		// clear selection
 		this.classDropdown.getMenu().selectItem();
 	}
@@ -345,7 +366,7 @@ BannerWidget.prototype.onImportanceChange = function () {
 	this.setChanged();
 	this.importanceChanged = true;
 	const importanceItem = this.importanceDropdown.getMenu().findSelectedItem();
-	if ( importanceItem && importanceItem.getData() == null ) {
+	if ( importanceItem && importanceItem.getData() === null ) {
 		// clear selection
 		this.importanceDropdown.getMenu().selectItem();
 	}
@@ -437,7 +458,9 @@ BannerWidget.prototype.onParameterAdd = function () {
 BannerWidget.prototype.updateAddParameterNameSuggestions = function () {
 	const paramsInUse = {};
 	this.parameterList.getParameterItems().forEach(
-		( paramWidget ) => paramsInUse[ paramWidget.name ] = true
+		( paramWidget ) => {
+			paramsInUse[ paramWidget.name ] = true;
+		}
 	);
 	this.addParameterNameInput.setSuggestions(
 		this.parameterSuggestions.filter(
@@ -490,8 +513,8 @@ BannerWidget.prototype.makeWikitext = function () {
 
 	return ( '{{' +
 		this.name +
-		( ( this.hasClassRatings || this.isShellTemplate ) && classVal != null ? `${ pipe }${ this.classParamName || 'class' }${ equals }${ classVal || '' }` : '' ) +
-		( this.hasImportanceRatings && importanceVal != null ? `${ pipe }${ this.importanceParamName || 'importance' }${ equals }${ importanceVal || '' }` : '' ) +
+		( ( this.hasClassRatings || this.isShellTemplate ) && classVal !== null ? `${ pipe }${ this.classParamName || 'class' }${ equals }${ classVal || '' }` : '' ) +
+		( this.hasImportanceRatings && importanceVal !== null ? `${ pipe }${ this.importanceParamName || 'importance' }${ equals }${ importanceVal || '' }` : '' ) +
 		this.parameterList.getParameterItems()
 			.map( ( parameter ) => parameter.makeWikitext( pipe, equals ) )
 			.join( '' ) +
@@ -505,27 +528,6 @@ BannerWidget.prototype.setPreferences = function ( prefs ) {
 		this.bypassRedirect();
 	}
 	this.parameterList.setPreferences( prefs );
-};
-
-// Helpers
-var isNameOrAliasOf = function ( paramName, canonicalLower, aliasMap ) {
-	const n = String( paramName ).toLowerCase();
-	if ( n === canonicalLower ) {
-		return true;
-	}
-	const aliasCanon = aliasMap && aliasMap[ paramName ];
-	return !!( aliasCanon && String( aliasCanon ).toLowerCase() === canonicalLower );
-};
-
-var selectInitialValue = function ( options, rawValue, maskFn ) {
-	let out = rawValue;
-	if ( out && Array.isArray( options ) && options.length ) {
-		const exact = options.find( ( v ) => String( v ).toLowerCase() === String( out ).toLowerCase() );
-		out = exact || ( maskFn ? maskFn( out ) : out );
-	} else {
-		out = maskFn ? maskFn( out ) : out;
-	}
-	return out;
 };
 
 export default BannerWidget;

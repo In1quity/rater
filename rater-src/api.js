@@ -131,7 +131,7 @@ const makeErrorMsg = function ( first, second ) {
 	let code, xhr, message;
 	if ( typeof first === 'object' && typeof second === 'string' ) {
 		// Errors from $.get being rejected (ORES & Raw wikitext)
-		var errorObj = first.responseJSON && first.responseJSON.error;
+		const errorObj = first.responseJSON && first.responseJSON.error;
 		if ( errorObj ) {
 			// Got an api-specific error code/message
 			code = errorObj.code;
@@ -144,8 +144,8 @@ const makeErrorMsg = function ( first, second ) {
 		const mwErrorObj = second.error;
 		if ( mwErrorObj ) {
 			// Got an api-specific error code/message
-			code = errorObj.code;
-			message = errorObj.info;
+			code = mwErrorObj.code;
+			message = mwErrorObj.info;
 		} else if ( first === 'ok-but-empty' ) {
 			code = null;
 			message = 'Got an empty response from the server';

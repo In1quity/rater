@@ -122,7 +122,8 @@ const getListOfBannersFromApi = function () {
 		$.when( arr[ index - 1 ] && arr[ index - 1 ].processed || true ).then( () => {
 			collectTemplatesRecursively( cat.title )
 				.then( ( titles ) => {
-					categories[ index ].banners = titles || []; try {
+					categories[ index ].banners = titles || [];
+					try {
 						dlog( 'Collected for', cat.title, ':', ( titles || [] ).length );
 					} catch ( e ) { /* ignore */ }
 				} )

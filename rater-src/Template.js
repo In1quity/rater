@@ -8,7 +8,9 @@ import * as cache from './cache';
 const tdLog = function () {
 	try {
 		if ( window && window.RATER_DEBUG ) {
-			const args = Array.prototype.slice.call( arguments ); args.unshift( '[Rater][TD]' ); console.log.apply( console, args );
+			const args = Array.prototype.slice.call( arguments );
+			args.unshift( '[Rater][TD]' );
+			console.log.apply( console, args );
 		}
 	} catch ( e ) { /* ignore */ }
 };
@@ -47,7 +49,7 @@ Template.prototype.addParam = function ( name, val, wikitext ) {
  * Get a parameter data by parameter name
  */
 Template.prototype.getParam = function ( paramName ) {
-	return this.parameters.find( ( p ) => p.name == paramName );
+	return this.parameters.find( ( p ) => p.name === paramName );
 };
 Template.prototype.setName = function ( name ) {
 	this.name = name.trim();
@@ -110,8 +112,8 @@ const parseTemplates = function ( wikitext, recursive ) {
 
 	const result = [];
 
-	const processTemplateText = function ( startIdx, endIdx ) {
-		let text = wikitext.slice( startIdx, endIdx );
+	const processTemplateText = function ( sIdx, eIdx ) {
+		let text = wikitext.slice( sIdx, eIdx );
 
 		const template = new Template( '{{' + text.replace( /\x01/g, '|' ) + '}}' );
 
@@ -128,10 +130,8 @@ const parseTemplates = function ( wikitext, recursive ) {
 		const endSpacing = text.match( /[\s\n]*$/ );
 		template.endBracesStyle = ( endSpacing ? endSpacing[ 0 ] : '' ) + '}}';
 
-		const chunks = text.split( '|' ).map( ( chunk ) =>
-			// change '\x01' control characters back to pipes
-			chunk.replace( /\x01/g, '|' )
-		);
+		// change '\x01' control characters back to pipes
+		const chunks = text.split( '|' ).map( ( chunk ) => chunk.replace( /\x01/g, '|' ) );
 
 		template.setName( chunks[ 0 ] );
 
@@ -175,7 +175,7 @@ const parseTemplates = function ( wikitext, recursive ) {
 	let inNowiki = false;
 	let inParameter = false;
 
-	let startIdx, endIdx;
+	let startIndex, endIndex;
 
 	for ( let i = 0; i < n; i++ ) {
 
@@ -186,14 +186,14 @@ const parseTemplates = function ( wikitext, recursive ) {
 				i += 2;
 			} else if ( wikitext[ i ] === '{' && wikitext[ i + 1 ] === '{' ) {
 				if ( numUnclosed === 0 ) {
-					startIdx = i + 2;
+					startIndex = i + 2;
 				}
 				numUnclosed += 2;
 				i++;
 			} else if ( wikitext[ i ] === '}' && wikitext[ i + 1 ] === '}' ) {
 				if ( numUnclosed === 2 ) {
-					endIdx = i;
-					processTemplateText( startIdx, endIdx );
+					endIndex = i;
+					processTemplateText( startIndex, endIndex );
 				}
 				numUnclosed -= 2;
 				i++;
@@ -344,13 +344,15 @@ Template.prototype.setParamDataAndSuggestions = function () {
 		if ( !className ) {
 			const keys = Object.keys( self.paramData || {} );
 			className = keys.find( ( k ) => {
-				const s = String( k ).toLowerCase(); return /class|класс|уров/i.test( s );
+				const s = String( k ).toLowerCase();
+				return /class|класс|уров/i.test( s );
 			} );
 		}
 		if ( !importanceName ) {
 			const keys2 = Object.keys( self.paramData || {} );
 			importanceName = keys2.find( ( k ) => {
-				const s = String( k ).toLowerCase(); return /importance|важност/i.test( s );
+				const s = String( k ).toLowerCase();
+				return /importance|важност/i.test( s );
 			} );
 		}
 		self.classParamName = className || 'class';
@@ -364,9 +366,9 @@ Template.prototype.setParamDataAndSuggestions = function () {
 		cachedInfo &&
 		cachedInfo.value &&
 		cachedInfo.staleDate &&
-		cachedInfo.value.paramData != null &&
-		cachedInfo.value.parameterSuggestions != null &&
-		cachedInfo.value.paramAliases != null
+		cachedInfo.value.paramData !== null && cachedInfo.value.paramData !== undefined &&
+		cachedInfo.value.parameterSuggestions !== null && cachedInfo.value.parameterSuggestions !== undefined &&
+		cachedInfo.value.paramAliases !== null && cachedInfo.value.paramAliases !== undefined
 	) {
 		self.notemplatedata = cachedInfo.value.notemplatedata;
 		self.paramData = cachedInfo.value.paramData;
@@ -383,7 +385,8 @@ Template.prototype.setParamDataAndSuggestions = function () {
 		} );
 		computeCanonicalNames();
 		try {
-			tdLog( 'param keys (cache)', Object.keys( self.paramData ) ); tdLog( 'aliases (cache)', self.paramAliases );
+			tdLog( 'param keys (cache)', Object.keys( self.paramData ) );
+			tdLog( 'aliases (cache)', self.paramAliases );
 		} catch ( e ) { /* ignore */ }
 		paramDataSet.resolve();
 		if ( !isAfterDate( cachedInfo.staleDate ) ) {
@@ -444,7 +447,8 @@ Template.prototype.setParamDataAndSuggestions = function () {
 			} );
 			computeCanonicalNames();
 			try {
-				tdLog( 'param keys (api)', Object.keys( self.paramData ) ); tdLog( 'aliases (api)', self.paramAliases );
+				tdLog( 'param keys (api)', Object.keys( self.paramData ) );
+				tdLog( 'aliases (api)', self.paramAliases );
 			} catch ( e ) { /* ignore */ }
 
 			// Make suggestions for combobox
@@ -453,7 +457,7 @@ Template.prototype.setParamDataAndSuggestions = function () {
 			self.parameterSuggestions = allParamsArray.filter( ( paramName ) => ( paramName && paramName !== 'class' && paramName !== 'importance' ) )
 				.map( ( paramName ) => {
 					const optionObject = { data: paramName };
-					var label = self.getDataForParam( label, paramName );
+					const label = self.getDataForParam( 'label', paramName );
 					if ( label ) {
 						optionObject.label = label + ' (|' + paramName + '=)';
 					}
@@ -470,7 +474,7 @@ Template.prototype.setParamDataAndSuggestions = function () {
 				paramData: self.paramData,
 				parameterSuggestions: self.parameterSuggestions,
 				paramAliases: self.paramAliases
-			},	1
+			}, 1
 			);
 			return true;
 		} )
@@ -614,8 +618,8 @@ Template.prototype.setClassesAndImportances = function () {
 		cachedRatings &&
 		cachedRatings.value &&
 		cachedRatings.staleDate &&
-		cachedRatings.value.classes != null &&
-		cachedRatings.value.importances != null
+		cachedRatings.value.classes !== null && cachedRatings.value.classes !== undefined &&
+		cachedRatings.value.importances !== null && cachedRatings.value.importances !== undefined
 	) {
 		this.classes = cachedRatings.value.classes;
 		this.importances = cachedRatings.value.importances;

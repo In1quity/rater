@@ -20,7 +20,7 @@ const LoadDialog = function LoadDialog( config ) {
 OO.inheritClass( LoadDialog, OO.ui.Dialog );
 
 LoadDialog.static.name = 'loadDialog';
-LoadDialog.static.title = '' + i18n.t( 'loading-title' );
+LoadDialog.static.title = String( i18n.t( 'loading-title' ) );
 
 // Customize the initialize() function: This is where to add content to the dialog body and set up event handlers.
 LoadDialog.prototype.initialize = function () {

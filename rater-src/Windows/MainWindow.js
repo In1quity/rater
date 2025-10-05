@@ -11,8 +11,8 @@ import * as cache from '../cache';
 import i18n from '../i18n';
 // <nowiki>
 
-function MainWindow( config ) {
-	MainWindow.super.call( this, config );
+function MainWindow( windowConfig ) {
+	MainWindow.super.call( this, windowConfig );
 }
 OO.inheritClass( MainWindow, OO.ui.ProcessDialog );
 
@@ -147,7 +147,7 @@ MainWindow.prototype.initialize = function () {
 	this.parsedContentContainer = new OO.ui.FieldsetLayout( {
 		label: i18n.t( 'label-preview' )
 	} );
-	this.parsedContentWidget = new OO.ui.LabelWidget( { label: '',	$element: $( '<div>' )	} );
+	this.parsedContentWidget = new OO.ui.LabelWidget( { label: '', $element: $( '<div>' ) } );
 	this.parsedContentContainer.addItems( [
 		new OO.ui.FieldLayout(
 			this.parsedContentWidget,
@@ -252,7 +252,7 @@ MainWindow.prototype.makeDraggable = function () {
 		dragFrom.y = event.clientY;
 	};
 	const onDragMove = ( event ) => {
-		if ( !pointerdown || dragFrom.x == null || dragFrom.y === null ) {
+		if ( !pointerdown || dragFrom.x === null || dragFrom.x === undefined || dragFrom.y === null || dragFrom.y === undefined ) {
 			return;
 		}
 		const dx = event.clientX - dragFrom.x;
@@ -452,7 +452,7 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 			API.post( {
 				action: 'parse',
 				contentmodel: 'wikitext',
-				text: this.transformTalkWikitext( this.talkWikitext ) + '\n<hr>\n' + "'''" + i18n.t( 'label-edit-summary' ) + "''' " + this.makeEditSummary(),
+				text: `${ this.transformTalkWikitext( this.talkWikitext ) }\n<hr>\n'''${ i18n.t( 'label-edit-summary' ) }''' ${ this.makeEditSummary() }`,
 				title: this.talkpage.getPrefixedText(),
 				pst: 1
 			} ).then( ( result ) => {
@@ -579,7 +579,7 @@ MainWindow.prototype.onSearchSelect = function ( data ) {
 		this.topBar.searchBox.popPending().focus();
 		return;
 	}
-	const existingBanner = this.bannerList.items.find( ( banner ) => banner.mainText === name ||	banner.redirectTargetMainText === name );
+	const existingBanner = this.bannerList.items.find( ( banner ) => banner.mainText === name || banner.redirectTargetMainText === name );
 
 	// Abort and show alert if banner already exists
 	if ( existingBanner ) {
@@ -630,7 +630,7 @@ MainWindow.prototype.onSetClasses = function ( classVal ) {
 		shellTemplate.classDropdown.getMenu().selectItemByData( classVal );
 		shellTemplate.classDropdown.setAutofilled( false );
 	}
-	this.bannerList.items.forEach( ( banner ) => {
+	this.bannerList.items.forEach( ( bannerItem ) => {
 		if ( banner.hasClassRatings && !banner.isShellTemplate ) {
 			banner.classDropdown.getMenu().selectItemByData( shellTemplate ? null : classVal );
 			banner.classDropdown.setAutofilled( false );
@@ -728,8 +728,8 @@ MainWindow.prototype.makeEditSummary = function () {
 
 	// removed banners:
 	this.existingBannerNames.forEach( ( name ) => {
-		const banner = this.bannerList.items.find( ( banner ) => banner.name === name || banner.bypassedName === name );
-		if ( !banner ) {
+		const existingBanner = this.bannerList.items.find( ( banner ) => banner.name === name || banner.bypassedName === name );
+		if ( !existingBanner ) {
 			removedBanners.push( '−' + shortName( name ) );
 		}
 	} );
@@ -740,7 +740,7 @@ MainWindow.prototype.makeEditSummary = function () {
 			// Not changed
 			return;
 		}
-		let newClass = banner.hasClassRatings && ( isNew || banner.classChanged ) && banner.classDropdown.getValue();
+		let newClass = bannerItem.hasClassRatings && ( isNew || bannerItem.classChanged ) && bannerItem.classDropdown.getValue();
 		if ( newClass ) {
 			someClassesChanged = true;
 		}

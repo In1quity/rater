@@ -71,7 +71,7 @@ const autoStart = function autoStart() {
 			// Silently ignore failures (just log to console)
 				console.warn(
 					'[Rater] Error while checking whether to autostart.' +
-				( code == null ) ? '' : ' ' + makeErrorMsg( code, jqxhr )
+					( code === null || typeof code === 'undefined' ? '' : ' ' + makeErrorMsg( code, jqxhr ) )
 				);
 				return $.Deferred().reject();
 			} );

@@ -12,7 +12,7 @@ OO.mixinClass( SuggestionLookupTextInputWidget, OO.ui.mixin.LookupElement );
 // Set suggestion. param: Object[] with objects of the form { data: ... , label: ... }
 SuggestionLookupTextInputWidget.prototype.setSuggestions = function ( suggestions ) {
 	if ( !Array.isArray( suggestions ) ) {
-		if ( suggestions != null ) {
+		if ( suggestions !== null && typeof suggestions !== 'undefined' ) {
 			console.warn( '[Rater] SuggestionLookupTextInputWidget.prototype.setSuggestions called with a non-array value:', suggestions );
 		}
 		return;
