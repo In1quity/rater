@@ -1,0 +1,50 @@
+name: Test Deploy Tag Message Extraction
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-extraction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare repo tags
+        run: |
+          git config user.email "ci@example.com"
+          git config user.name "CI Tester"
+          echo "test" > file.txt
+          git add file.txt
+          git commit -m "test: seed repo"
+          # Create an annotated tag with multi-paragraph message
+          git tag -a vA -m $'Title A\n\nParagraph 1\n\n- bullet\n- bullet 2'
+          # Create a lightweight tag
+          git tag vL
+
+      - name: Run script on annotated
+        run: |
+          chmod +x .github/scripts/extract_tag_message.sh
+          OUT=$(.github/scripts/extract_tag_message.sh vA)
+          echo "--- Annotated Output ---"
+          echo "$OUT"
+          test -n "$OUT"
+          echo "$OUT" | grep -q "Title A"
+          echo "$OUT" | grep -q "Paragraph 1"
+
+      - name: Run script on lightweight
+        run: |
+          chmod +x .github/scripts/extract_tag_message.sh
+          OUT=$(.github/scripts/extract_tag_message.sh vL)
+          echo "--- Lightweight Output ---"
+          echo "$OUT" | sed -n '1,120p'
+          # Should be empty string for lightweight tag
+          test -z "$OUT"
+
+      - name: Run script on non-existent
+        run: |
+          chmod +x .github/scripts/extract_tag_message.sh
+          OUT=$(.github/scripts/extract_tag_message.sh vMISSING || true)
+          echo "--- Missing Output ---"
+          echo "$OUT"
+          test -z "$OUT"
+
