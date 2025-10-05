@@ -1,7 +1,7 @@
-import config from './config';
-import { getPrefs } from './prefs';
-import API, { makeErrorMsg } from './api';
-import setupRater from './setup';
+import config from '@constants/config.js';
+import { getPrefs } from '@services/prefs.js';
+import API, { makeErrorMsg } from '@services/api.js';
+import setupRater from '@services/setup.js';
 // <nowiki>
 
 const autoStart = function autoStart() {

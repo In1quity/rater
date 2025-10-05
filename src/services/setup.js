@@ -1,12 +1,12 @@
-import config from './config';
-import i18n from './i18n';
-import API from './api';
-import { parseTemplates, getWithRedirectTo } from './Template';
-import { getBannerNames } from './getBanners';
-import * as cache from './cache';
-import windowManager from './windowManager';
-import { getPrefs } from './prefs';
-import { filterAndMap } from './util';
+import config from '@constants/config.js';
+import i18n from '@services/i18n.js';
+import API from '@services/api.js';
+import { parseTemplates, getWithRedirectTo } from '@utils/Template.js';
+import { getBannerNames } from '@services/getBanners.js';
+import * as cache from '@services/cache.js';
+import windowManager from '@services/windowManager.js';
+import { getPrefs } from '@services/prefs.js';
+import { filterAndMap } from '@utils/util.js';
 // <nowiki>
 
 const setupRater = function ( clickEvent ) {

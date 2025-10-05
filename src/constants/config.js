@@ -333,5 +333,5 @@ function getShellTemplateAliases( api ) {
 }
 
 export default config;
-export { loadExternalConfig, getShellTemplateAliases };
+export { config, loadExternalConfig, getShellTemplateAliases };
 // </nowiki>

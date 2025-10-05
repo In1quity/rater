@@ -1,14 +1,14 @@
-import BannerWidget from './Components/BannerWidget';
-import BannerListWidget from './Components/BannerListWidget';
-import config from '../config';
-import API, { makeErrorMsg } from '../api';
-import PrefsFormWidget from './Components/PrefsFormWidget';
-import { setPrefs as ApiSetPrefs } from '../prefs';
-import { parseTemplates } from '../Template';
-import TopBarWidget from './Components/TopBarWidget';
-import { filterAndMap, uniqueArray } from '../util';
-import * as cache from '../cache';
-import i18n from '../i18n';
+import BannerWidget from './BannerWidget.js';
+import BannerListWidget from './BannerListWidget.js';
+import config from '@constants/config.js';
+import API, { makeErrorMsg } from '@services/api.js';
+import PrefsFormWidget from './PrefsFormWidget.js';
+import { setPrefs as ApiSetPrefs } from '@services/prefs.js';
+import { Template, parseTemplates } from '@utils/Template.js';
+import TopBarWidget from './TopBarWidget.js';
+import { filterAndMap, uniqueArray } from '@utils/util.js';
+import * as cache from '@services/cache.js';
+import i18n from '@services/i18n.js';
 // <nowiki>
 
 function MainWindow( windowConfig ) {

@@ -22,9 +22,9 @@
 	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"lint:eslint": "eslint index.js \"rater-src/**\"",
-		"lint:stylelint": "stylelint \"rater-src/**/*.css\"",
-		"lint:fix": "eslint index.js \"rater-src/**\" --fix && stylelint \"rater-src/**/*.css\" --fix",
+		"lint:eslint": "eslint index.js \"src/**\"",
+		"lint:stylelint": "stylelint \"src/**/*.css\"",
+		"lint:fix": "eslint index.js \"src/**\" --fix && stylelint \"src/**/*.css\" --fix",
 		"lint": "npm run lint:eslint && npm run lint:stylelint",
 		"build:dev": "vite build --mode development",
 		"build:prod": "vite build --mode production",

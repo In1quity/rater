@@ -1,7 +1,7 @@
-import API from './api';
-import { isAfterDate, mostFrequent, filterAndMap } from './util';
-import config from './config';
-import * as cache from './cache';
+import API from '@services/api.js';
+import { isAfterDate, mostFrequent, filterAndMap } from './util.js';
+import config from '@constants/config.js';
+import * as cache from '@services/cache.js';
 // <nowiki>
 
 // Debug logger (enable via window.RATER_DEBUG)

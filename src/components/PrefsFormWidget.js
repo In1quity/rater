@@ -1,5 +1,5 @@
-import config from '../../config';
-import i18n from '../../i18n';
+import config from '@constants/config.js';
+import i18n from '@services/i18n.js';
 // <nowiki>
 
 function PrefsFormWidget( prefsConfig ) {

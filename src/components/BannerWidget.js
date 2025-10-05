@@ -1,11 +1,11 @@
-import ParameterListWidget from './ParameterListWidget';
-import ParameterWidget from './ParameterWidget';
-import DropdownParameterWidget from './DropdownParameterWidget';
-import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget';
-import { filterAndMap, classMask, importanceMask } from '../../util';
-import { Template, getWithRedirectTo } from '../../Template';
-import HorizontalLayoutWidget from './HorizontalLayoutWidget';
-import globalConfig from '../../config';
+import ParameterListWidget from './ParameterListWidget.js';
+import ParameterWidget from './ParameterWidget.js';
+import DropdownParameterWidget from './DropdownParameterWidget.js';
+import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget.js';
+import { filterAndMap, classMask, importanceMask } from '@utils/util.js';
+import { Template, getWithRedirectTo } from '@utils/Template.js';
+import HorizontalLayoutWidget from './HorizontalLayoutWidget.js';
+import globalConfig from '@constants/config.js';
 // <nowiki>
 
 // Helpers

@@ -1,9 +1,7 @@
-import setupRater from './setup';
-import './styles.css';
-import API, { makeErrorMsg } from './api';
-import windowManager from './windowManager';
-import i18n from './i18n';
-import config, { loadExternalConfig } from './config';
+import { setupRater, API, makeErrorMsg, windowManager } from './services/index.js';
+import i18n from './services/i18n.js';
+import './styles/styles.css';
+import { config, loadExternalConfig } from './constants/index.js';
 // <nowiki>
 
 function startApp() {

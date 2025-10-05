@@ -1,4 +1,4 @@
-import { isAfterDate } from './util';
+import { isAfterDate } from '@utils/util.js';
 // <nowiki>
 
 /** write

@@ -31,6 +31,16 @@ export default defineConfig(({ command, mode }) => {
 	return {
 	// Modern environment handling
 	envPrefix: ['VITE_', 'RATER_'],
+	resolve: {
+		alias: {
+			'@': path.resolve(__dirname, 'src'),
+			'@components': path.resolve(__dirname, 'src/components'),
+			'@services': path.resolve(__dirname, 'src/services'),
+			'@utils': path.resolve(__dirname, 'src/utils'),
+			'@constants': path.resolve(__dirname, 'src/constants'),
+			'@styles': path.resolve(__dirname, 'src/styles')
+		}
+	},
 	define: {
 		RATER_VERSION: JSON.stringify(pkg.version),
 		BUILD_DATE: JSON.stringify(buildDate),
@@ -68,7 +78,7 @@ export default defineConfig(({ command, mode }) => {
 	build: {
 		emptyOutDir: true,
 		lib: {
-			entry: 'rater-src/App.js',
+			entry: 'src/App.js',
 			name: 'Rater',
 			fileName: () => 'rater-core.js',
 			formats: ['iife']

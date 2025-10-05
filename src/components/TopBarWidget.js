@@ -1,7 +1,7 @@
-import config from '../../config';
-import i18n from '../../i18n';
-import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget';
-import { getBannerNames } from '../../getBanners';
+import config from '@constants/config.js';
+import i18n from '@services/i18n.js';
+import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget.js';
+import { getBannerNames } from '@services/getBanners.js';
 // <nowiki>
 
 // Helper function to remove the first matching prefix from banner name

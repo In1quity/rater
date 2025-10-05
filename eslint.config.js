@@ -10,7 +10,7 @@ import markdown from "@eslint/markdown";
 export default [
   {
 		name: "rater/base",
-		files: ["**/*.js"],
+		files: ["src/**/*.js", "index.js"],
 		plugins: { unicorn, security, "es-x": esx, jsdoc, "@stylistic": stylistic, "@stylistic/js": stylistic },
     languageOptions: {
 			ecmaVersion: 2017,

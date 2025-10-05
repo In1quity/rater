@@ -4,43 +4,131 @@ This is the source code for version 3 of the Wikipedia userscript [Rater](https:
 ## Installation instructions and user guide
 See [https://en.wikipedia.org/wiki/User:Evad37/rater](https://en.wikipedia.org/wiki/User:Evad37/rater).
 
-## Repository structure
-- `index.js` is the main entry point, written in ES2017. This is published to [User:Evad37/rater.js](https://en.wikipedia.org/wiki/User:Evad37/rater.js) (when deploying), or [User:Evad37/rater/sandbox.js](https://en.wikipedia.org/wiki/User:Evad37/rater/sandbox.js) (for sandbox testing of changes). Or [User:Evad37/rater/beta.js](https://en.wikipedia.org/wiki/User:Evad37/rater/beta.js) for beta testing.
+## 🏗️ Project Structure
+
+The project uses a modern, scalable architecture with clear separation of concerns:
+
+### 📁 Directory Organization
+
+```
+├── index.js             # Main loader script before formatting (userscript entry point)
+├── src/                 # Source code directory
+│   ├── components/          # UI Components
+│   │   ├── MainWindow.js           # Main application window
+│   │   ├── LoadDialog.js           # Loading dialog
+│   │   ├── BannerListWidget.js     # Banner list widget
+│   │   ├── BannerWidget.js         # Individual banner widget
+│   │   ├── DropdownParameterWidget.js
+│   │   ├── HorizontalLayoutWidget.js
+│   │   ├── ParameterListWidget.js
+│   │   ├── ParameterWidget.js
+│   │   ├── PrefsFormWidget.js      # Preferences form
+│   │   ├── SuggestionLookupTextInputWidget.js
+│   │   └── TopBarWidget.js         # Top navigation bar
+│   ├── services/           # Business Logic & Services
+│   │   ├── api.js                  # API communication
+│   │   ├── cache.js                # Caching service
+│   │   ├── windowManager.js        # Window management
+│   │   ├── i18n.js                 # Internationalization
+│   │   ├── getBanners.js           # Banner retrieval
+│   │   ├── setup.js                # Application setup
+│   │   ├── autostart.js            # Auto-start logic
+│   │   ├── prefs.js                # Preferences management
+│   │   └── index.js                # Barrel exports (used in App.js)
+│   ├── utils/              # Utility Functions
+│   │   ├── Template.js             # Template utilities
+│   │   └── util.js                 # General utilities
+│   ├── constants/          # Configuration & Constants
+│   │   ├── config.js               # Application configuration
+│   │   └── index.js                # Barrel exports (used in App.js)
+│   ├── styles/             # CSS Styles
+│   │   └── styles.css              # Main stylesheet
+│   ├── types/              # TypeScript Types (future)
+│   └── App.js              # Main application entry point
+├── dist/                 # Build output
+└── i18n/                 # Internationalization
+```
+
+### 🎯 Design Principles
+
+#### 1. **Separation of Concerns**
+- **Components**: Pure UI components with minimal business logic
+- **Services**: Business logic, API calls, data management
+- **Utils**: Pure utility functions without side effects
+- **Constants**: Configuration and constants
+
+#### 2. **Modern ES Modules**
+- All files use ES2017+ syntax
+- Explicit file extensions in imports
+- Tree-shakable exports
+
+#### 3. **Vite Aliases**
+```javascript
+// Instead of relative paths
+import config from '../../constants/config.js';
+
+// Use aliases
+import config from '@constants/config.js';
+```
+
+#### 4. **Direct Imports**
+Use direct imports for better tree-shaking and clarity:
+```javascript
+import API from '@services/api.js';
+import windowManager from '@services/windowManager.js';
+import MainWindow from '@components/MainWindow.js';
+```
+
+### 📦 Build Output
+
+The source code is bundled, transpiled, and minified using `npm run build`. This creates:
+
+- **`dist/rater.js`** - Main entry point, loader script (2.72 kB)
   - Creates a portlet button that lazy-loads the main application on demand
   - Only loads `mediawiki.util` at startup; other modules are loaded when the button is clicked
-- `rater-src\` contains the main source code for the app, split into modules, written in ES2017. Code here can assume that the ResourceLoader modules specified in the above files have been loaded and that the DOM is ready.
-   - `App.js` is the entry point that auto-starts when loaded
-   - `styles.css` contains all CSS styles (minified and injected into JS)
-   - Related code should be placed in the same module.
-   - Small pieces of code, not particularly related to anything, can be placed in `rater-src\util.js`
-- The source code is bundled, transpiled, and minified using `npm run build`. This writes two files to the `dist\` directory:
-   - `dist\rater.js` contains bundled and transpiled code, with a source map. It is published to [User:Evad37/rater/sandbox/app.js](https://en.wikipedia.org/wiki/User:Evad37/rater/sandbox/app.js), for testing/debugging purposes.
-   - `dist\rater.min.js` is the minified version with CSS injected inline. It is published to [User:Evad37/rater/app.js](https://en.wikipedia.org/wiki/User:Evad37/rater/app.js) (the *live version* of the userscript), once the sandbox version has been adequately tested. Or [User:Evad37/rater/beta/app.js](https://en.wikipedia.org/wiki/User:Evad37/rater/beta/app.js) for beta testing.
-- External scripts (other than those provided by MediaWiki) are located in the `lib\` folder, and deployed to subpages of [User:Evad37/rater/lib/](https://en.wikipedia.org/wiki/Special:PrefixIndex?prefix=User%3AEvad37%2Frater%2Flib%2F).
-   - This allows the bundled source code size to be smaller, and easier to work with. The scripts can be loaded with `mw.loader.getScript`, which returns a promise that resolves when the script is loaded.
-   - These files must have licencing which, to be compatible with English Wikipedia (CC-BY-SA-3.0/GFDL), is permissive with regards to distribution, modification, and sublicencing. E.g. Apache, BSD, MIT licences are okay; GNU licences are not okay. See [comparison table](https://en.wikipedia.org/wiki/Comparison_of_free_and_open-source_software_licenses).
+- **`dist/rater-core.js`** - Main application bundle
 
-### Tooling
+### 🔧 Tooling
 - **eslint** (v9) with flat config for ES2017 linting
 - **stylelint** for CSS linting
 - **vite** for bundling, transpiling, minification, and file concatenation
 
 ## TODO
- - Possible future features:
-    - [ ] Have a preference for portlet location
-    - [ ] Have a preference to autostart for particular talkpage categories
-    - [ ] Have a preference to autostart for subject-page categories that match a word/regex pattern
-    - [ ] Allow order of banners to be adjusted
- - [ ] Investigate unit testing
-    - Is node-based unit testing even possible, given the reliance on globals like `mw` and `OO`?
-    - Look at how v1 is using QUnit unit testing. Maybe replicate or iterate on that.
-    - Or maybe have QUnit tesing inside the app source code, that gets run if the url contains a query parameter such as `&testrater=1`?
-- [ ] Improve documentation
-- [ ] ... probably other things too - finish off this list, and/or put issues on the github page.
-### Roadmap
-- [X] Complete the v2 rewrite
-- [X] Get beta testers to try out the new version. Fix/adjust things as they get reported.
-- [X] Release the new version generally.
-- [X] Migrate to v3 with modern tooling (esbuild, ESLint 9, stylelint)
-- [X] Implement lazy loading architecture
-- [X] Optimize CSS handling with inline injection
+
+### 🚀 Future Features
+- [ ] **Portlet customization**: Allow users to choose portlet location and appearance
+- [ ] **Smart autostart**: Auto-start for specific talkpage categories or subject-page patterns
+- [ ] **Banner management**: Allow users to reorder banners and customize their display
+- [ ] **Enhanced preferences**: More granular control over autostart behavior and UI settings
+- [ ] **Keyboard shortcuts**: Add keyboard navigation for power users
+- [ ] **Bulk operations**: Select and modify multiple banners at once
+
+### 🧪 Testing & Quality
+- [ ] **Unit testing**: Implement comprehensive test suite
+  - [ ] Test components in isolation using jsdom/mock MediaWiki globals
+  - [ ] Test services with mocked API responses
+  - [ ] Add integration tests for critical user flows
+- [ ] **E2E testing**: Add end-to-end tests for complete user workflows
+- [ ] **Performance testing**: Monitor and optimize bundle size and runtime performance
+- [ ] **Accessibility testing**: Ensure WCAG compliance for screen readers and keyboard navigation
+
+### 📚 Documentation & Developer Experience
+- [ ] **API documentation**: Complete JSDoc comments for all public APIs
+- [ ] **Component documentation**: Storybook or similar for UI components
+- [ ] **Developer guide**: Comprehensive setup and contribution guidelines
+- [ ] **User guide**: Enhanced documentation with screenshots and examples
+- [ ] **Migration guide**: Help users transition from old versions
+
+### 🔧 Technical Improvements
+- [ ] **TypeScript migration**: Add type safety and better IDE support
+- [ ] **Performance optimization**: Implement lazy loading for large components
+- [ ] **Bundle optimization**: Further reduce bundle size with tree-shaking
+- [ ] **Error handling**: Improve error reporting and user feedback
+- [ ] **Internationalization**: Expand language support beyond English
+- [ ] **Modern APIs**: Migrate to newer MediaWiki APIs where available
+
+### 🐛 Maintenance
+- [ ] **Dependency updates**: Keep all dependencies current and secure
+- [ ] **Code cleanup**: Remove deprecated code and improve consistency
+- [ ] **Performance monitoring**: Add metrics and monitoring for production usage
+- [ ] **Issue tracking**: Set up proper issue templates and contribution guidelines

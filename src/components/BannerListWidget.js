@@ -1,7 +1,7 @@
-import config from '../../config';
-import BannerWidget from './BannerWidget';
-import { normaliseYesNo, filterAndMap, uniqueArray } from '../../util';
-import ParameterWidget from './ParameterWidget';
+import config from '@constants/config.js';
+import BannerWidget from './BannerWidget.js';
+import { normaliseYesNo, filterAndMap, uniqueArray } from '@utils/util.js';
+import ParameterWidget from './ParameterWidget.js';
 // <nowiki>
 
 const BannerListWidget = function BannerListWidget( widgetConfig ) {

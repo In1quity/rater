@@ -1,5 +1,5 @@
-import { makeErrorMsg } from '../api';
-import i18n from '../i18n';
+import { makeErrorMsg } from '@services/api.js';
+import i18n from '@services/i18n.js';
 // <nowiki>
 
 /* var incrementProgressByInterval = function() {

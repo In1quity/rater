@@ -1,7 +1,7 @@
-import API from './api';
-import { isAfterDate } from './util';
-import config from './config';
-import * as cache from './cache';
+import API from '@services/api.js';
+import { isAfterDate } from '@utils/util.js';
+import config from '@constants/config.js';
+import * as cache from '@services/cache.js';
 // <nowiki>
 
 const prefsPage = `User:${ mw.config.get( 'wgUserName' ) }/raterPrefs.json`;

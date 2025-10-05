@@ -1,5 +1,5 @@
-import { normaliseYesNo, filterAndMap } from '../../util';
-import HorizontalLayoutWidget from './HorizontalLayoutWidget';
+import { normaliseYesNo, filterAndMap } from '@utils/util.js';
+import HorizontalLayoutWidget from './HorizontalLayoutWidget.js';
 // <nowiki>
 
 function ParameterWidget( parameter, paramData, config ) {

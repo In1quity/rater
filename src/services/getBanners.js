@@ -1,7 +1,7 @@
-import API from './api';
-import { isAfterDate, uniqueArray } from './util';
-import * as cache from './cache';
-import config from './config';
+import API from '@services/api.js';
+import { isAfterDate, uniqueArray } from '@utils/util.js';
+import * as cache from '@services/cache.js';
+import config from '@constants/config.js';
 // <nowiki>
 
 // Debug logger (enable with window.RATER_DEBUG = true)

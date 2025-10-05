@@ -1,5 +1,5 @@
-import LoadDialog from './Windows/LoadDialog';
-import MainWindow from './Windows/MainWindow';
+import LoadDialog from '../components/LoadDialog.js';
+import MainWindow from '../components/MainWindow.js';
 // <nowiki>
 
 const factory = new OO.Factory();
