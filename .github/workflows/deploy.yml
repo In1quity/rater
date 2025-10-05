@@ -39,11 +39,13 @@ jobs:
         
         # Get the tag message using git show with proper format
         # Filter out Git metadata lines (tag name, tagger info) and empty lines
+        # Also filter out commit message that Git automatically appends
         TAG_MESSAGE=$(git show --format='%B' --no-patch refs/tags/${{ github.ref_name }} 2>/dev/null | \
           grep -v "^tag " | \
           grep -v "^Tagger:" | \
           grep -v "^$" | \
-          sed '/^$/d' || echo "")
+          sed '/^$/d' | \
+          head -n -4 || echo "")
         
         echo "Extracted message length: ${#TAG_MESSAGE}"
         
