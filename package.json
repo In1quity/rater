@@ -11,9 +11,9 @@
     "lint:stylelint": "stylelint \"rater-src/**/*.css\"",
     "lint:fix": "eslint index.js \"rater-src/**\" --fix && stylelint \"rater-src/**/*.css\" --fix",
     "lint": "npm run lint:eslint && npm run lint:stylelint",
-		"build:dev": "vite build --mode development",
-		"build:prod": "vite build --mode production",
-		"build": "npm run lint && npm run build:dev && npm run build:prod"
+    "build:dev": "vite build --mode development",
+    "build:prod": "vite build --mode production",
+    "build": "npm run lint && npm run build:dev && npm run build:prod"
   },
   "author": {
     "name": "Evad37",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "@eslint/json": "^0.13.2",
     "@eslint/markdown": "^7.3.0",
+    "@rollup/plugin-commonjs": "^28.0.6",
     "@stylistic/eslint-plugin": "^5.4.0",
     "eslint": "^9.35.0",
     "eslint-plugin-es-x": "^9.1.0",
@@ -35,6 +36,7 @@
     "eslint-plugin-unicorn": "^61.0.2",
     "stylelint": "^16.25.0",
     "stylelint-config-standard": "^39.0.0",
-    "vite": "^7.1.9"
+    "vite": "^7.1.9",
+    "vite-plugin-css-injected-by-js": "^3.5.2"
   }
 }

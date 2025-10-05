@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
+import commonjs from '@rollup/plugin-commonjs';
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 import concatPlugin from './vite-plugin-concat.js';
 
 export default defineConfig({
 	plugins: [
+		cssInjectedByJsPlugin(),
 		concatPlugin({
 			files: ['comment-top.js', 'dist/rater.js', 'comment-bottom.js'],
 			output: 'dist/rater.min.js'
@@ -18,8 +21,13 @@ export default defineConfig({
 		target: 'es2017',
 		minify: true,
 		sourcemap: true,
-		cssCodeSplit: false, // Inline all CSS in JS
 		rollupOptions: {
+			plugins: [
+				commonjs({
+					include: ['**/*.js', '**/*.json'],
+					transformMixedEsModules: true
+				})
+			],
 			output: {
 				// Ensure CSS is inlined in the JS bundle
 				inlineDynamicImports: true,
@@ -32,5 +40,9 @@ export default defineConfig({
 	css: {
 		// Minify CSS
 		minify: true
+	},
+	// Enable CommonJS support
+	optimizeDeps: {
+		include: ['**/*']
 	}
 });
