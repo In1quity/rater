@@ -32,4 +32,4 @@ jobs:
       run: |
         ls -la dist/
         test -f dist/rater.js
-        test -f dist/rater.min.js
+        test -f dist/rater-core.js

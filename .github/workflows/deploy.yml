@@ -49,11 +49,11 @@ jobs:
           ${{ steps.tag_message.outputs.tag_message }}
           
           ## Build Artifacts
-          - `dist/rater.js` - Development build (unminified)
-          - `dist/rater.min.js` - Production build (minified)
+          - `dist/rater.js` - Loader script (unminified)
+          - `dist/rater-core.js` - Main application bundle (minified)
           
           ## Installation
-          Install the userscript by copying the contents of `dist/rater.min.js` into your userscript manager.
+          Install the userscript by copying the contents of `dist/rater.js` into your userscript manager.
         files: |
           dist/rater.js
-          dist/rater.min.js
+          dist/rater-core.js
