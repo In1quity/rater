@@ -332,6 +332,18 @@ function getShellTemplateAliases( api ) {
 	} );
 }
 
+/**
+ * Returns cached shell template aliases if available synchronously.
+ * Falls back to the configured main template name when cache is empty.
+ * @returns {Array<string>}
+ */
+function getShellTemplateAliasesSync() {
+	if ( Array.isArray( shellTemplateAliases ) && shellTemplateAliases.length ) {
+		return shellTemplateAliases.slice();
+	}
+	return [ config.shellTemplate ];
+}
+
 export default config;
-export { config, loadExternalConfig, getShellTemplateAliases };
+export { config, loadExternalConfig, getShellTemplateAliases, getShellTemplateAliasesSync };
 // </nowiki>

@@ -45,7 +45,7 @@ function BannerWidget( template, config ) {
 	this.paramAliases = template.paramAliases || {};
 	this.classParamName = template.classParamName || 'class';
 	this.importanceParamName = template.importanceParamName || 'importance';
-	this.parameterSuggestions = template.parameterSuggestions;
+	this.parameterSuggestions = template.parameterSuggestions || [];
 	this.name = template.name;
 	this.wikitext = template.wikitext;
 	this.pipeStyle = template.pipeStyle;
@@ -184,7 +184,7 @@ function BannerWidget( template, config ) {
 		template.parameters,
 		( param ) => {
 			if ( this.isShellTemplate ) {
-				if ( param.name === '1' ) {
+				if ( String( param.name ) === '1' ) {
 					this.shellParam1Value = param.value;
 					return false;
 				}
@@ -463,10 +463,9 @@ BannerWidget.prototype.updateAddParameterNameSuggestions = function () {
 			paramsInUse[ paramWidget.name ] = true;
 		}
 	);
+	const suggestions = Array.isArray( this.parameterSuggestions ) ? this.parameterSuggestions : [];
 	this.addParameterNameInput.setSuggestions(
-		this.parameterSuggestions.filter(
-			( suggestion ) => !paramsInUse[ suggestion.data ]
-		)
+		suggestions.filter( ( suggestion ) => !paramsInUse[ suggestion.data ] )
 	);
 };
 

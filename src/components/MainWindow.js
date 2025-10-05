@@ -691,6 +691,8 @@ MainWindow.prototype.transformTalkWikitext = function ( talkWikitext ) {
 		// Found the insertion point for the banners
 		return ( talkWikitextSections[ 0 ] + '\n' + bannersWikitext.trim() + '\n' + talkWikitextSections[ 1 ] ).trim();
 	}
+	// No explicit insertion point found; make sure no control characters leak into output
+	talkWikitext = talkWikitext.replace( /\x02/g, '' );
 	// Check if there's anything beside templates
 	let tempStr = talkWikitext;
 	talkTemplates.forEach( ( template ) => {

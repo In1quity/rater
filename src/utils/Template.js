@@ -1,4 +1,5 @@
 import API from '@services/api.js';
+import { getShellTemplateAliases, getShellTemplateAliasesSync } from '@constants/config.js';
 import { isAfterDate, mostFrequent, filterAndMap } from './util.js';
 import config from '@constants/config.js';
 import * as cache from '@services/cache.js';
@@ -292,13 +293,45 @@ Template.prototype.getDataForParam = function ( key, paraName ) {
 	return data;
 };
 
+// Cache shell template aliases to avoid repeated async lookups
+let cachedShellAliases = null;
+
 Template.prototype.isShellTemplate = function () {
 	const mainText = this.redirectTarget ?
 		this.redirectTarget.getMainText() :
 		this.getTitle().getMainText();
-	// For now, just check against the main template name
-	// TODO: Make this async to check against all aliases
-	return mainText === config.shellTemplate;
+
+	// Normalize to bare template names (strip localized namespace like "Template:" or "Шаблон:")
+	const templateNsName = ( config.mw && config.mw.wgFormattedNamespaces && ( config.mw.wgFormattedNamespaces[ 10 ] || 'Template' ) ) || 'Template';
+	const nsEscaped = String( templateNsName ).replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+	const localizedNsRe = new RegExp( '^' + nsEscaped + ':', 'i' );
+	const normalize = ( name ) => String( name || '' )
+		.replace( /^Template:/i, '' )
+		.replace( localizedNsRe, '' );
+
+	const normalizedMain = normalize( mainText );
+	const normalizedTarget = normalize( config.shellTemplate );
+	if ( normalizedMain === normalizedTarget ) {
+		return true;
+	}
+
+	// If aliases already cached (or available sync), check against them
+	const localAliases = ( Array.isArray( cachedShellAliases ) && cachedShellAliases.length ) ?
+		cachedShellAliases : getShellTemplateAliasesSync();
+	if ( Array.isArray( localAliases ) && localAliases.some( ( name ) => normalize( name ) === normalizedMain ) ) {
+		return true;
+	}
+
+	// Fire-and-forget: warm the cache for subsequent checks
+	try {
+		getShellTemplateAliases( API ).then( ( list ) => {
+			cachedShellAliases = list || [];
+		} );
+	} catch ( _e ) {
+		/* ignore */
+	}
+
+	return false;
 };
 
 Template.prototype.setParamDataAndSuggestions = function () {
