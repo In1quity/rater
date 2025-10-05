@@ -32,7 +32,10 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       id: tag_message
       run: |
-        TAG_MESSAGE=$(git show --format='%B' --no-patch ${{ github.ref_name }})
+        TAG_MESSAGE=$(git tag -l --format='%(contents:subject)%0A%0A%(contents:body)' ${{ github.ref_name }})
+        if [ -z "$TAG_MESSAGE" ]; then
+          TAG_MESSAGE="Release ${{ github.ref_name }}"
+        fi
         echo "tag_message<<EOF" >> $GITHUB_OUTPUT
         echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
