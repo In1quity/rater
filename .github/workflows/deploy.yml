@@ -35,11 +35,11 @@ jobs:
         # Debug: Show what we're getting
         echo "Getting tag message for: ${{ github.ref_name }}"
         echo "Git show output:"
-        git show --format='%B' --no-patch ${{ github.ref_name }} || echo "git show failed"
+        git show --format='%B' --no-patch refs/tags/${{ github.ref_name }} || echo "git show failed"
         
         # Get the tag message using git show with proper format
         # Filter out Git metadata lines (tag name, tagger info) and empty lines
-        TAG_MESSAGE=$(git show --format='%B' --no-patch ${{ github.ref_name }} 2>/dev/null | \
+        TAG_MESSAGE=$(git show --format='%B' --no-patch refs/tags/${{ github.ref_name }} 2>/dev/null | \
           grep -v "^tag " | \
           grep -v "^Tagger:" | \
           grep -v "^$" | \
