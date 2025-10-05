@@ -53,6 +53,10 @@ $.when(
 		if ( addLink() ) {
 			$( '#' + linkId ).on( 'click', ( event ) => {
 				event.preventDefault();
+				// Remove loader link to avoid duplicate button creation by loaded script
+				const $el = $( '#' + linkId );
+				const $li = $el.is( 'li' ) ? $el : $el.closest( 'li' );
+				$li.remove();
 				// Load required modules first, then load the main script
 				const reqModules = [
 					'mediawiki.util', 'mediawiki.api', 'mediawiki.Title',
