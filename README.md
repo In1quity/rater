@@ -1,6 +1,6 @@
 # Rater
 
-<a href="https://nodejs.org/en/about/previous-releases"><img src="https://img.shields.io/node/v/18.svg" alt="node compatibility"></a>
+<a href="https://nodejs.org/en/about/previous-releases"><img src="https://img.shields.io/node/v/18" alt="node compatibility"></a>
 <a href="https://github.com/In1quity/rater/actions/workflows/ci.yml"><img src="https://github.com/In1quity/rater/actions/workflows/ci.yml/badge.svg?branch=master" alt="build status"></a>
 
 This is the source code for version 3 of the Wikipedia userscript [Rater](https://en.wikipedia.org/wiki/User:Evad37/rater).
