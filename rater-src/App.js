@@ -1,5 +1,4 @@
 import setupRater from './setup';
-import autoStart from './autostart';
 import './styles.css';
 import API, { makeErrorMsg } from './api';
 import windowManager from './windowManager';
@@ -54,23 +53,8 @@ function startApp() {
 		);
 	}
 
-	// Invocation by portlet link
-	console.log( '[Rater] Adding portlet link' );
-	mw.util.addPortletLink(
-		'p-cactions',
-		'#',
-		i18n.t( 'app-portlet-text' ),
-		'ca-rater',
-		i18n.t( 'app-portlet-tooltip' ),
-		'5'
-	);
-	$( '#ca-rater' ).click( ( event ) => {
-		event.preventDefault();
-		setupRater().then( showMainWindow, showSetupError );
-	} );
-
-	// Invocation by auto-start (do not show message on error)
-	autoStart().then( showMainWindow );
+	// When the bundle is loaded on demand, start immediately
+	setupRater().then( showMainWindow, showSetupError );
 }
 
 // Ensure i18n is loaded before constructing UI so initial labels are localized
