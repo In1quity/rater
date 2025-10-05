@@ -1,7 +1,14 @@
 // <nowiki>
 
-// Always bundle English as a local fallback
-const fallbackDict = require( '../i18n/en.json' );
+// Always bundle English as a local fallback (pre-bundled at build time)
+// Use define()-injected fallback to avoid CommonJS require
+let fallbackDict;
+try {
+	// Prefer global injected dictionary if present
+	fallbackDict = ( typeof RATER_I18N_EN !== 'undefined' ) ? RATER_I18N_EN : {};
+} catch ( _ ) {
+	fallbackDict = {};
+}
 
 // Cache for loaded dictionaries; prefill with English
 const cachedDictionaries = {

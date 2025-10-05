@@ -1,0 +1,52 @@
+---
+description: Release management and versioning guidelines
+---
+
+# Release Management Rules
+
+## Release Creation Policy
+
+**CRITICAL**: Releases are created ONLY upon explicit user command. Never create releases automatically.
+
+### When to Create Releases
+- ✅ User explicitly requests: "создай релиз", "create release", "bump version"
+- ✅ User provides specific version: "bump to 3.2.0", "create patch release"
+- ❌ Never create releases during regular development work
+- ❌ Never create releases after commits without explicit request
+
+### Release Process
+1. **Wait for user command** - Never initiate releases automatically
+2. **Follow semver**: patch (3.1.1), minor (3.2.0), major (4.0.0)
+3. **Use npm version**: `npm version patch/minor/major`
+4. **Build artifacts**: `npm run build` to update dist files
+5. **Create GitHub release**: Use GitHub CLI with proper description
+6. **Push changes**: `git push && git push --tags`
+
+### Release Description Template
+```markdown
+## 🐛 Bug Fixes
+- **Fixed [issue]**: [description]
+
+## 🔧 Improvements  
+- **Updated [component]**: [description]
+
+## ⚙️ Technical Changes
+- [technical details]
+
+This [patch/minor/major] release [summary].
+```
+
+### Memory Reference
+Always remember: [[memory:9593695]] - Do not push changes without the user's explicit command; keep work local until asked to push.
+
+### GitHub CLI Usage
+```bash
+gh release create vX.Y.Z --title "vX.Y.Z - [Description]" --notes-file release-notes.md
+```
+
+### Version Bumping Rules
+- **patch**: Bug fixes, small improvements
+- **minor**: New features, non-breaking changes  
+- **major**: Breaking changes, major refactoring
+
+Remember: User must explicitly request releases. Never assume or auto-create.

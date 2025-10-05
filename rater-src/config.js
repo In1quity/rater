@@ -1,6 +1,5 @@
 // <nowiki>
-const packagejson = require( '../package.json' );
-const version = packagejson.version;
+const version = ( typeof RATER_VERSION !== 'undefined' ) ? RATER_VERSION : '0.0.0';
 
 // A global object that stores all the page and user configuration and settings
 const config = {

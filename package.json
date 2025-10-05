@@ -1,40 +1,60 @@
 {
-  "name": "rater",
-  "version": "3.1.0",
-  "description": "Wikipedia userscript that helps assess pages for WikiProjects",
-  "homepage": "https://github.com/evad37/rater",
-  "type": "module",
-  "browser": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint:eslint": "eslint index.js \"rater-src/**\"",
-    "lint:stylelint": "stylelint \"rater-src/**/*.css\"",
-    "lint:fix": "eslint index.js \"rater-src/**\" --fix && stylelint \"rater-src/**/*.css\" --fix",
-    "lint": "npm run lint:eslint && npm run lint:stylelint",
+	"name": "rater",
+	"version": "3.1.2",
+	"description": "Wikipedia userscript that helps assess pages for WikiProjects",
+	"keywords": [
+		"wikipedia",
+		"wikiproject",
+		"userscript",
+		"assessment",
+		"quality",
+		"importance",
+		"mediawiki"
+	],
+	"homepage": "https://github.com/evad37/rater",
+	"bugs": {
+		"url": "https://github.com/evad37/rater/issues"
+	},
+	"type": "module",
+	"browser": "index.js",
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"lint:eslint": "eslint index.js \"rater-src/**\"",
+		"lint:stylelint": "stylelint \"rater-src/**/*.css\"",
+		"lint:fix": "eslint index.js \"rater-src/**\" --fix && stylelint \"rater-src/**/*.css\" --fix",
+		"lint": "npm run lint:eslint && npm run lint:stylelint",
 		"build:dev": "vite build --mode development",
 		"build:prod": "vite build --mode production",
-		"build": "npm run lint && npm run build:dev && npm run build:prod"
-  },
-  "author": {
-    "name": "Evad37",
-    "url": "https://en.wikipedia.org/wiki/User:Evad37"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/evad37/rater.git"
-  },
-  "license": "(MIT OR CC-BY-4.0)",
-  "devDependencies": {
-    "@eslint/json": "^0.13.2",
-    "@eslint/markdown": "^7.3.0",
-    "@stylistic/eslint-plugin": "^5.4.0",
-    "eslint": "^9.35.0",
-    "eslint-plugin-es-x": "^9.1.0",
-    "eslint-plugin-jsdoc": "^57.0.8",
-    "eslint-plugin-security": "^3.0.1",
-    "eslint-plugin-unicorn": "^61.0.2",
-    "stylelint": "^16.25.0",
-    "stylelint-config-standard": "^39.0.0",
-    "vite": "^7.1.9"
-  }
+		"build": "npm run lint && npm run build:dev && npm run build:prod",
+		"prebuild": "npm run lint",
+		"prepublishOnly": "npm run build"
+	},
+	"author": {
+		"name": "Evad37",
+		"url": "https://en.wikipedia.org/wiki/User:Evad37"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/evad37/rater.git",
+		"directory": "."
+	},
+	"license": "(MIT OR CC-BY-4.0)",
+	"devDependencies": {
+		"@eslint/json": "^0.13.2",
+		"@eslint/markdown": "^7.3.0",
+		"@stylistic/eslint-plugin": "^5.4.0",
+		"eslint": "^9.35.0",
+		"eslint-plugin-es-x": "^9.1.0",
+		"eslint-plugin-jsdoc": "^57.0.8",
+		"eslint-plugin-jsonc": "^2.21.0",
+		"eslint-plugin-security": "^3.0.1",
+		"eslint-plugin-unicorn": "^61.0.2",
+		"stylelint": "^16.25.0",
+		"stylelint-config-standard": "^39.0.0",
+		"vite": "^7.1.9",
+		"vite-plugin-css-injected-by-js": "^3.5.2"
+	}
 }

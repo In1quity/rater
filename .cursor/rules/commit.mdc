@@ -5,6 +5,21 @@ alwaysApply: true
 
 Follow these guidelines for all commits to maintain clean and meaningful git history.
 
+## Commit Creation Policy
+
+**CRITICAL**: Commits are created ONLY upon explicit user command. Never commit automatically.
+
+### When to Commit
+- ✅ User explicitly requests: "закоммить", "commit", "сохрани изменения"
+- ✅ User provides commit message: "commit with message 'fix: bug'"
+- ✅ User asks to save work: "сохрани", "save changes"
+- ✅ User requests to push: "запушь изменения", "push changes"
+- ❌ Never commit during regular development work
+- ❌ Never commit after making changes without explicit request
+
+### Memory Reference
+Always remember: [[memory:9593695]] - Do not push changes without the user's explicit command; keep work local until asked to push.
+
 ## Commit Message Format
 
 Use conventional commits format: `type(scope): description`

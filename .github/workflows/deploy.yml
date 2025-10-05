@@ -12,6 +12,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref }}
+        fetch-depth: 0
+        fetch-tags: true
     
     - name: Use Node.js
       uses: actions/setup-node@v4
@@ -32,7 +36,38 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       id: tag_message
       run: |
-        TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ github.ref_name }})
+        # Debug: Show what we're getting
+        echo "Getting tag message for: ${{ github.ref_name }}"
+        
+        chmod +x .github/scripts/extract_tag_message.sh
+        TAG_MESSAGE=$(.github/scripts/extract_tag_message.sh "${{ github.ref_name }}")
+        
+        echo "Extracted message length: ${#TAG_MESSAGE}"
+        
+        # Create release message according to project rules
+        if [ -z "$TAG_MESSAGE" ]; then
+          TAG_MESSAGE="Release ${{ github.ref_name }}"
+        else
+          # Format the message according to release template
+          cat > /tmp/release_message.txt <<'RELEASE_EOF'
+        ## 🚀 Release ${{ github.ref_name }}
+        
+        RELEASE_EOF
+          echo "$TAG_MESSAGE" >> /tmp/release_message.txt
+          cat >> /tmp/release_message.txt <<'RELEASE_EOF'
+        
+        ## 📦 Build Artifacts
+        - `dist/rater.js` - Loader script (unminified)
+        - `dist/rater-core.js` - Main application bundle (minified)
+        
+        ## 📥 Installation
+        Install the userscript by copying the contents of `dist/rater.js` into your userscript manager.
+        RELEASE_EOF
+          TAG_MESSAGE=$(cat /tmp/release_message.txt)
+        fi
+        
+        echo "Final message: $TAG_MESSAGE"
+        
         echo "tag_message<<EOF" >> $GITHUB_OUTPUT
         echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
@@ -45,15 +80,7 @@ jobs:
         name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false
-        body: |
-          ${{ steps.tag_message.outputs.tag_message }}
-          
-          ## Build Artifacts
-          - `dist/rater.js` - Development build (unminified)
-          - `dist/rater.min.js` - Production build (minified)
-          
-          ## Installation
-          Install the userscript by copying the contents of `dist/rater.min.js` into your userscript manager.
+        body: ${{ steps.tag_message.outputs.tag_message || format('Release {0}', github.ref_name) }}
         files: |
           dist/rater.js
-          dist/rater.min.js
+          dist/rater-core.js
