@@ -163,25 +163,28 @@ BannerListWidget.prototype.autofillClassRatings = function ( options ) {
 	if ( !this.preferences.autofillClassFromOthers && !this.preferences.autofillClassFromOres && !autofillConfig.forBannerShell ) {
 		return;
 	}
-	// Check what banners already have
-	const uniqueClassRatings = uniqueArray( filterAndMap(
-		this.items,
-		( banner ) => {
-			if ( banner.isShellTemplate || !banner.hasClassRatings ) {
-				return false;
+	// Check what banners already have (safely handle null selected item)
+	const selectedClassValues = [];
+	this.items.forEach( ( banner ) => {
+		if ( banner.isShellTemplate || !banner.hasClassRatings ) {
+			return;
+		}
+		const selected = banner.classDropdown.getMenu().findSelectedItem();
+		if ( selected ) {
+			const data = selected.getData();
+			if ( data ) {
+				selectedClassValues.push( data );
 			}
-			const classItem = banner.classDropdown.getMenu().findSelectedItem();
-			return classItem && classItem.getData();
-		},
-		( banner ) => banner.classDropdown.getMenu().findSelectedItem().getData()
-	) );
+		}
+	} );
+	const uniqueClassRatings = uniqueArray( selectedClassValues );
 	// Can't autofill if there isn't either a single value, or no value
 	if ( uniqueClassRatings.length > 1 ) {
 		return;
 	}
 	// Determine what to autofill with
 	let autoClass;
-	if ( uniqueClassRatings.length === 1 && ( this.preferences.autofillClassFromOthers || config.forBannerShell ) ) {
+	if ( uniqueClassRatings.length === 1 && ( this.preferences.autofillClassFromOthers || autofillConfig.forBannerShell ) ) {
 		autoClass = uniqueClassRatings[ 0 ];
 	} else if ( uniqueClassRatings.length === 0 && this.preferences.autofillClassFromOres && this.oresClass ) {
 		// Don't autofill above C-class
@@ -199,10 +202,10 @@ BannerListWidget.prototype.autofillClassRatings = function ( options ) {
 			return;
 		}
 		const classItem = banner.classDropdown.getMenu().findSelectedItem();
-		if ( classItem && classItem.getData() && !widgetConfig.forBannerShell ) {
+		if ( classItem && classItem.getData() && !autofillConfig.forBannerShell ) {
 			return;
 		}
-		if ( widgetConfig.forBannerShell && !banner.isShellTemplate && classItem.getData() === autoClass ) {
+		if ( autofillConfig.forBannerShell && !banner.isShellTemplate && classItem && classItem.getData() === autoClass ) {
 			banner.classDropdown.getMenu().selectItemByData( null );
 			return;
 		}
