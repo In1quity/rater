@@ -9,6 +9,6 @@
  * To update this script from github, you must have a local repository set up. Then
  * follow the instructions at [https://github.com/evad37/rater/blob/master/README.md]
  */
-/* jshint esversion: 5, laxbreak: true, undef: true, eqnull: true, maxerr: 3000 */
+/* eslint-env browser */
 /* globals console, document, window, $, mw, OO, extraJs */
 /* <nowiki> */

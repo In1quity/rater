@@ -23,9 +23,7 @@ See [https://en.wikipedia.org/wiki/User:Evad37/rater](https://en.wikipedia.org/w
 ### Tooling
 - **eslint** (v9) with flat config for ES2017 linting
 - **stylelint** for CSS linting
-- **esbuild** for bundling, transpiling, and minification
-- **concat-cli** for combining files
-- **build-css-inline.cjs** for injecting CSS into JS bundle
+- **vite** for bundling, transpiling, minification, and file concatenation
 
 ## TODO
  - Possible future features:

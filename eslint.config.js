@@ -7,14 +7,14 @@ import json from "@eslint/json";
 import markdown from "@eslint/markdown";
 
 export default [
-	{
+  {
 		name: "rater/base",
 		files: ["**/*.js"],
 		plugins: { unicorn, security, "es-x": esx, jsdoc, "@stylistic": stylistic, "@stylistic/js": stylistic },
-		languageOptions: {
+    languageOptions: {
 			ecmaVersion: 2017,
 			sourceType: "module",
-			globals: {
+      globals: {
 				// MediaWiki globals
 				mw: "readonly",
 				$: "readonly",
@@ -179,7 +179,7 @@ export default [
 		files: ["**/*.json", "**/*.jsonc", "**/*.json5"],
 		plugins: { json, security },
 		language: "json/json",
-		rules: {
+    rules: {
 			"json/no-duplicate-keys": "error",
 			"indent": ["error", "tab"],
 			"max-len": "off",
