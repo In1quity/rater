@@ -32,15 +32,20 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       id: tag_message
       run: |
-        # Try to get annotated tag message
-        TAG_MESSAGE=$(git cat-file tag ${{ github.ref_name }} 2>/dev/null | sed '1,/^$/d' || echo "")
-        if [ -z "$TAG_MESSAGE" ]; then
-          # Fallback to lightweight tag or commit message
-          TAG_MESSAGE=$(git show --format='%B' --no-patch ${{ github.ref_name }} 2>/dev/null || echo "")
-        fi
+        # Debug: Show what we're getting
+        echo "Getting tag message for: ${{ github.ref_name }}"
+        echo "Git show output:"
+        git show --format='%B' --no-patch ${{ github.ref_name }} || echo "git show failed"
+        
+        # Get the tag message using git show with proper format
+        TAG_MESSAGE=$(git show --format='%B' --no-patch ${{ github.ref_name }} 2>/dev/null | sed '/^$/d' || echo "")
+        echo "Extracted message length: ${#TAG_MESSAGE}"
+        
         if [ -z "$TAG_MESSAGE" ]; then
           TAG_MESSAGE="Release ${{ github.ref_name }}"
         fi
+        echo "Final message: $TAG_MESSAGE"
+        
         echo "tag_message<<EOF" >> $GITHUB_OUTPUT
         echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
