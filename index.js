@@ -19,8 +19,8 @@ $.when(
 	// Do not operate on top-level User and User_talk pages (only on subpages)
 	if (
 		conf.wgNamespaceNumber >= 2 &&
-        conf.wgNamespaceNumber <= 3 &&
-        !conf.wgPageName.includes( '/' )
+		conf.wgNamespaceNumber <= 3 &&
+		!conf.wgPageName.includes( '/' )
 	) {
 		return;
 	}
@@ -53,10 +53,17 @@ $.when(
 		if ( addLink() ) {
 			$( '#' + linkId ).on( 'click', ( event ) => {
 				event.preventDefault();
-				// Remove loader link to avoid duplicate button creation by loaded script
-				const $el = $( '#' + linkId );
-				const $li = $el.is( 'li' ) ? $el : $el.closest( 'li' );
-				$li.remove();
+				// Prevent duplicate button creation by returning existing link for the same id
+				const originalAddPortletLink = mw.util.addPortletLink;
+				mw.util.addPortletLink = function ( portlet, href, text, id, tooltip, accesskey ) {
+					if ( id === linkId ) {
+						const existing = document.getElementById( linkId );
+						if ( existing ) {
+							return existing;
+						}
+					}
+					return originalAddPortletLink.apply( this, arguments );
+				};
 				// Load required modules first, then load the main script
 				const reqModules = [
 					'mediawiki.util', 'mediawiki.api', 'mediawiki.Title',
