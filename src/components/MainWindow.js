@@ -549,7 +549,16 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 			} )
 				.then( ( result ) => {
 					if ( !result || !result.compare || !result.compare[ '*' ] ) {
-						return $.Deferred().reject( 'Empty result' );
+						// Show a friendly empty-diff message from MediaWiki core instead of error
+						const msg = ( typeof mw !== 'undefined' && mw.msg ) ? mw.msg( 'diff-empty' ) : 'No difference';
+						const $empty = $( '<div>' ).addClass( 'diff-empty' ).text( msg );
+						this.parsedContentWidget.setLabel( $empty );
+						this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
+						this.actions.setMode( 'diff' );
+						this.contentArea.setItem( this.parsedContentLayout );
+						this.topBar.setDisabled( true );
+						this.updateSize();
+						return;
 					}
 					const $diff = $( '<table>' ).addClass( 'diff' ).css( 'width', '100%' ).append(
 						$( '<tr>' ).append(

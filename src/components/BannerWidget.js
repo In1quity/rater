@@ -507,8 +507,8 @@ BannerWidget.prototype.makeWikitext = function () {
 	if ( !this.isShellTemplate && !this.changed && this.wikitext ) {
 		return this.wikitext;
 	}
-	const pipe = this.pipeStyle;
-	const equals = this.equalsStyle;
+	const pipe = this.pipeStyle || '|';
+	const equals = this.equalsStyle || '=';
 	const classItem = ( this.hasClassRatings || this.isShellTemplate ) && this.classDropdown.getMenu().findSelectedItem();
 	const classVal = classItem && classItem.getData();
 	const importanceItem = this.hasImportanceRatings && this.importanceDropdown.getMenu().findSelectedItem();
@@ -519,7 +519,13 @@ BannerWidget.prototype.makeWikitext = function () {
 		( ( this.hasClassRatings || this.isShellTemplate ) && classVal !== null ? `${ pipe }${ this.classParamName || 'class' }${ equals }${ classVal || '' }` : '' ) +
 		( this.hasImportanceRatings && importanceVal !== null ? `${ pipe }${ this.importanceParamName || 'importance' }${ equals }${ importanceVal || '' }` : '' ) +
 		this.parameterList.getParameterItems()
-			.map( ( parameter ) => parameter.makeWikitext( pipe, equals ) )
+			.map( ( parameter ) => {
+				if ( this.isShellTemplate && String( parameter.name ) === '1' ) {
+					// Render shell inner content as positional parameter (no "1=")
+					return pipe + ( parameter.value || '' );
+				}
+				return parameter.makeWikitext( pipe, equals );
+			} )
 			.join( '' ) +
 		this.endBracesStyle )
 		.replace( /\n+}}$/, '\n}}' ); // avoid empty line at end like [[Special:Diff/925982142]]

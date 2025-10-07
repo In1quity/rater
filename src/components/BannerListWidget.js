@@ -274,7 +274,14 @@ BannerListWidget.prototype.makeWikitext = function () {
 			( shellTemplate.nonStandardTemplates ? shellTemplate.nonStandardTemplates + '\n' : '' )
 	} );
 	shellTemplate.parameterList.addItems( [ shellParam1 ] );
+	try {
+		const tmpCount = shellTemplate.parameterList.getParameterItems().length;
+		log.debug( '[makeWikitext] temp param added, count=%d', tmpCount );
+	} catch ( _e ) {}
 	const shellWikitext = shellTemplate.makeWikitext();
+	try {
+		log.debug( '[makeWikitext] after render, count=%d', shellTemplate.parameterList.getParameterItems().length );
+	} catch ( _e ) {}
 	shellTemplate.parameterList.removeItems( [ shellParam1 ] );
 	try {
 		log.info( '[makeWikitext] shellLen=%d', shellWikitext.length );

@@ -1,5 +1,6 @@
 // <nowiki>
 import i18n from '@services/i18n.js';
+import ParameterWidget from './ParameterWidget.js';
 
 /**
  * @cfg {OO.ui.Element[]} items Items to be added
@@ -120,7 +121,7 @@ ParameterListWidget.prototype.onParameterChange = function () {
 };
 
 ParameterListWidget.prototype.getParameterItems = function () {
-	return this.items.filter( ( item ) => item.constructor.name === 'ParameterWidget' );
+	return this.items.filter( ( item ) => item instanceof ParameterWidget );
 };
 
 ParameterListWidget.prototype.onShowMoreParametersButtonClick = function () {
