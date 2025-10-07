@@ -1,18 +1,19 @@
 // <nowiki>
 
-// Initialize API with default user agent
+// Initialize API with default user agent from build-time constants
 const DEFAULT_VERSION = ( typeof RATER_VERSION !== 'undefined' && RATER_VERSION ) || 'dev';
+const DEFAULT_DOC_PAGE = ( typeof RATER_DOC_PAGE !== 'undefined' && RATER_DOC_PAGE ) || 'https://en.wikipedia.org/wiki/User:Evad37/Rater';
 const API = new mw.Api( {
 	ajax: {
 		headers: {
-			'Api-User-Agent': 'Rater/' + DEFAULT_VERSION + ' ( https://en.wikipedia.org/wiki/User:Evad37/Rater )'
+			'Api-User-Agent': 'Rater/' + DEFAULT_VERSION + ' ( ' + DEFAULT_DOC_PAGE + ' )'
 		}
 	}
 } );
 
 // Function to update API user agent when config is loaded
 API.updateUserAgent = function ( version ) {
-	API.defaults.ajax.headers[ 'Api-User-Agent' ] = 'Rater/' + version + ' ( https://en.wikipedia.org/wiki/User:Evad37/Rater )';
+	API.defaults.ajax.headers[ 'Api-User-Agent' ] = 'Rater/' + version + ' ( ' + DEFAULT_DOC_PAGE + ' )';
 };
 
 /* ---------- API for ORES ---------------------------------------------------------------------- */

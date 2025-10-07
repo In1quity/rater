@@ -2,29 +2,32 @@ import { defineConfig } from 'vite';
 import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 import fs from 'node:fs';
 import path from 'node:path';
-// Inline userscript meta banner/footer so we don't maintain separate files
-const banner = `/*
- * Rater: dialog interface to add, remove, or modify WikiProject banners
- * Author: Evad37
- * Licence: MIT / CC-BY 4.0 [https://github.com/evad37/rater/blob/master/LICENSE]
- * 
- * Built from source code at GitHub repository [https://github.com/evad37/rater].
- * All changes should be made in the repository, otherwise they will be lost.
- * 
- * To update this script from github, you must have a local repository set up. Then
- * follow the instructions at [https://github.com/evad37/rater/blob/master/README.md]
- */
-/* eslint-env browser */
-/* globals console, document, window, $, mw, OO, extraJs */
-/* <nowiki> */`;
-const footer = `/* </nowiki> */`;
-
 export default defineConfig(({ command, mode }) => {
 	const isProd = command === 'build' && mode === 'production';
 	const isDev = command === 'serve' || mode === 'development';
 	
 	// Cache package.json and i18n data to avoid repeated file reads
 	const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url)));
+	
+	// Userscript metadata banner and footer with dynamic version
+	const banner = `/*
+ * Rater - Wikipedia userscript for WikiProject banner assessment
+ * 
+ * A dialog interface to add, remove, or modify WikiProject banners on talk pages,
+ * including quality assessment (class) and importance ratings.
+ * 
+ * @author     ${pkg.author.name} (${pkg.author.url})
+ * @license    ${pkg.license} (${pkg.repository.url.replace('.git', '')}/blob/master/LICENSE)
+ * @repository ${pkg.repository.url.replace('.git', '')}
+ * @version    ${pkg.version}
+ * 
+ * Built from source. All changes should be made in the repository.
+ * For updates and documentation, visit: ${pkg.homepage}
+ */
+/* eslint-env browser */
+/* globals console, document, window, $, mw, OO, extraJs */
+/* <nowiki> */`;
+	const footer = `/* </nowiki> */`;
 	const buildDate = new Date().toISOString().slice(0, 10);
 	const enDict = JSON.parse(fs.readFileSync(new URL('./i18n/en.json', import.meta.url)));
 	
@@ -43,6 +46,7 @@ export default defineConfig(({ command, mode }) => {
 	},
 	define: {
 		RATER_VERSION: JSON.stringify(pkg.version),
+		RATER_DOC_PAGE: JSON.stringify(pkg.documentation),
 		BUILD_DATE: JSON.stringify(buildDate),
 		RATER_I18N_EN: JSON.stringify(enDict),
 		// Modern global definitions

@@ -12,6 +12,7 @@
 		"mediawiki"
 	],
 	"homepage": "https://github.com/evad37/rater",
+	"documentation": "https://en.wikipedia.org/wiki/User:Evad37/Rater",
 	"bugs": {
 		"url": "https://github.com/evad37/rater/issues"
 	},
