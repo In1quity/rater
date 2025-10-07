@@ -349,7 +349,20 @@ MainWindow.prototype.getSetupProcess = function ( data ) {
 			if ( data.banners ) {
 				// Update TopBar suggestions when banners are available
 				try {
-					buildBannerSuggestions( data.banners ).then( ( bannerOptions ) => this.topBar.searchBox.setSuggestions( bannerOptions ) );
+					const source = data.bannerNames || { withRatings: [], withoutRatings: [], wrappers: [], notWPBM: [], inactive: [], wir: [] };
+					const counts = {
+						withRatings: ( source.withRatings || [] ).length,
+						withoutRatings: ( source.withoutRatings || [] ).length,
+						wrappers: ( source.wrappers || [] ).length,
+						notWPBM: ( source.notWPBM || [] ).length,
+						inactive: ( source.inactive || [] ).length,
+						wir: ( source.wir || [] ).length
+					};
+					log.info( '  - Suggestion source groups:', counts );
+					const bannerOptions = buildBannerSuggestions( source );
+					log.info( '  - Built %d banner suggestions', ( bannerOptions || [] ).length );
+					( bannerOptions || [] ).slice( 0, 5 ).forEach( ( opt, i ) => log.info( '    %d. %s', i + 1, opt && opt.label ) );
+					this.topBar.searchBox.setSuggestions( bannerOptions );
 				} catch ( _e ) { /* ignore */ }
 				log.info( '  - Banner templates from setup.js:' );
 				data.banners.forEach( ( bannerTemplate, i ) => {

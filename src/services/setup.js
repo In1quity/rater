@@ -111,17 +111,19 @@ const setupRater = function ( clickEvent ) {
 		prefsPromise,
 		loadTalkPromise,
 		templateDetailsPromise,
+		bannersPromise,
 		subjectPageCheckPromise,
 		shouldGetOres && oresPromise
 	).then(
 		// All succeded
-		( preferences, talkWikitext, banners, subjectPageCheck, oresPredicition ) => {
+		( preferences, talkWikitext, banners, bannerNames, subjectPageCheck, oresPredicition ) => {
 			const result = {
 				success: true,
 				talkpage: talkPage,
 				subjectPage: subjectPage,
 				talkWikitext: talkWikitext,
 				banners: banners,
+				bannerNames: bannerNames,
 				preferences: preferences,
 				isArticle: subjectIsArticle
 			};

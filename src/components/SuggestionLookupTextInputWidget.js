@@ -20,6 +20,9 @@ SuggestionLookupTextInputWidget.prototype.setSuggestions = function ( suggestion
 		return;
 	}
 	this.suggestions = suggestions;
+	try {
+		log.info( '[Suggestion] setSuggestions: %d items', suggestions.length );
+	} catch ( _e ) { /* ignore */ }
 };
 
 // Returns data, as a resolution to a promise, to be passed to #getLookupMenuOptionsFromData
@@ -48,7 +51,11 @@ SuggestionLookupTextInputWidget.prototype.getLookupMenuOptionsFromData = functio
 			label: optionItem.label || optionItem.data
 		} );
 	};
-	return this.suggestions.filter( labelMatchesInputVal ).map( makeMenuOptionWidget );
+	const filtered = this.suggestions.filter( labelMatchesInputVal );
+	try {
+		log.debug( '[Suggestion] filter: value="%s" → %d/%d matched', this.getValue(), filtered.length, this.suggestions.length );
+	} catch ( _e ) { /* ignore */ }
+	return filtered.map( makeMenuOptionWidget );
 };
 
 // Extend onLookupMenuChoose method to emit an choose event
