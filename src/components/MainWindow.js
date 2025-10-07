@@ -4,11 +4,18 @@ import config from '@constants/config.js';
 import API, { makeErrorMsg } from '@services/api.js';
 import PrefsFormWidget from './PrefsFormWidget.js';
 import { setPrefs as ApiSetPrefs } from '@services/prefs.js';
-import { Template, parseTemplates } from '@utils/Template.js';
+import { applyBannerInsert } from '@services/bannerApply.js';
+import { parsePreview, compareDiff } from '@services/preview.js';
+import { buildEditSummary } from '@utils/editSummary.js';
+import { ensureBannerPrefix } from '@utils/banners.js';
 import TopBarWidget from './TopBarWidget.js';
+import { buildBannerSuggestions } from '@services/autofill.js';
 import { filterAndMap, uniqueArray } from '@utils/util.js';
+import { containsTemplate } from '@utils/wikitext.js';
 import * as cache from '@services/cache.js';
 import i18n from '@services/i18n.js';
+import logger from '@services/logger.js';
+const log = logger.get( 'MainWindow' );
 // <nowiki>
 
 function MainWindow( windowConfig ) {
@@ -330,6 +337,41 @@ MainWindow.prototype.getSetupProcess = function ( data ) {
 				'List' :
 				data.ores && data.ores.prediction;
 			this.bannerList.pageInfo = this.pageInfo;
+
+			// Debug logging for UI data processing
+			log.info( 'UI data processing debug:' );
+			log.info( '  - Data received from setup.js:', {
+				bannersCount: data.banners ? data.banners.length : 'undefined',
+				ores: data.ores ? 'present' : 'undefined',
+				pageInfo: data.pageInfo ? 'present' : 'undefined'
+			} );
+
+			if ( data.banners ) {
+				// Update TopBar suggestions when banners are available
+				try {
+					const source = data.bannerNames || { withRatings: [], withoutRatings: [], wrappers: [], notWPBM: [], inactive: [], wir: [] };
+					const counts = {
+						withRatings: ( source.withRatings || [] ).length,
+						withoutRatings: ( source.withoutRatings || [] ).length,
+						wrappers: ( source.wrappers || [] ).length,
+						notWPBM: ( source.notWPBM || [] ).length,
+						inactive: ( source.inactive || [] ).length,
+						wir: ( source.wir || [] ).length
+					};
+					log.info( '  - Suggestion source groups:', counts );
+					const bannerOptions = buildBannerSuggestions( source );
+					log.info( '  - Built %d banner suggestions', ( bannerOptions || [] ).length );
+					( bannerOptions || [] ).slice( 0, 5 ).forEach( ( opt, i ) => log.info( '    %d. %s', i + 1, opt && opt.label ) );
+					this.topBar.searchBox.setSuggestions( bannerOptions );
+				} catch ( _e ) { /* ignore */ }
+				log.info( '  - Banner templates from setup.js:' );
+				data.banners.forEach( ( bannerTemplate, i ) => {
+					const isShell = bannerTemplate.isShellTemplate ? bannerTemplate.isShellTemplate() : 'unknown';
+					const name = bannerTemplate.getTitle ? bannerTemplate.getTitle().getMainText() : 'unknown';
+					log.info( '    - Banner %d: "%s" (isShell: %s)', i, name, isShell );
+				} );
+			}
+
 			this.bannerList.addItems(
 				data.banners.map( ( bannerTemplate ) => new BannerWidget(
 					bannerTemplate,
@@ -340,6 +382,15 @@ MainWindow.prototype.getSetupProcess = function ( data ) {
 					}
 				) )
 			);
+
+			// Debug logging after adding items to UI
+			log.info( '  - Banner widgets created: %d', this.bannerList.items.length );
+			log.info( '  - Banner widgets in UI:' );
+			this.bannerList.items.forEach( ( bannerWidget, i ) => {
+				const name = bannerWidget.template ? bannerWidget.template.getTitle().getMainText() : 'unknown';
+				const isShell = bannerWidget.isShellTemplate;
+				log.info( '    - UI Banner %d: "%s" (isShell: %s)', i, name, isShell );
+			} );
 			const shellTemplateBanner = this.bannerList.items.find( ( banner ) => banner.isShellTemplate );
 			if ( shellTemplateBanner && shellTemplateBanner.shellParam1Value ) {
 				shellTemplateBanner.nonStandardTemplates = this.bannerList.items.reduce(
@@ -461,12 +512,11 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 
 	} else if ( action === 'preview' ) {
 		return new OO.ui.Process().next(
-			API.post( {
-				action: 'parse',
-				contentmodel: 'wikitext',
-				text: `${ this.transformTalkWikitext( this.talkWikitext ) }\n<hr>\n'''${ i18n.t( 'label-edit-summary' ) }''' ${ this.makeEditSummary() }`,
+			parsePreview( {
+				talkWikitext: this.transformTalkWikitext( this.talkWikitext ),
+				summary: this.makeEditSummary(),
 				title: this.talkpage.getPrefixedText(),
-				pst: 1
+				label: i18n.t( 'label-edit-summary' )
 			} ).then( ( result ) => {
 				if ( !result || !result.parse || !result.parse.text || !result.parse.text[ '*' ] ) {
 					return $.Deferred().reject( 'Empty result' );
@@ -492,18 +542,49 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 
 	} else if ( action === 'changes' ) {
 		return new OO.ui.Process().next(
-			API.post( {
-				action: 'compare',
-				format: 'json',
-				fromtext: this.talkWikitext,
-				fromcontentmodel: 'wikitext',
-				totext: this.transformTalkWikitext( this.talkWikitext ),
-				tocontentmodel: 'wikitext',
-				prop: 'diff'
+			compareDiff( {
+				fromText: this.talkWikitext,
+				toText: this.transformTalkWikitext( this.talkWikitext ),
+				title: this.talkpage.getPrefixedText()
 			} )
 				.then( ( result ) => {
 					if ( !result || !result.compare || !result.compare[ '*' ] ) {
-						return $.Deferred().reject( 'Empty result' );
+						// Ensure the core MediaWiki message is available before showing it
+						const loadDiffEmptyMessage = () => {
+							// If already loaded, resolve immediately
+							if ( typeof mw !== 'undefined' && mw.message && mw.message( 'diff-empty' ).exists() ) {
+								return $.Deferred().resolve( mw.msg( 'diff-empty' ) ).promise();
+							}
+							// Prefer mw.Api().loadMessages if available
+							if ( typeof mw !== 'undefined' && mw.Api && typeof ( new mw.Api() ).loadMessages === 'function' ) {
+								return ( new mw.Api() ).loadMessages( [ 'diff-empty' ] ).then( () => mw.msg( 'diff-empty' ) );
+							}
+							// Fallback: fetch via allmessages
+							if ( typeof mw !== 'undefined' && mw.Api ) {
+								const api = new mw.Api();
+								return api.get( {
+									action: 'query',
+									meta: 'allmessages',
+									ammessages: 'diff-empty',
+									amlang: mw.config && mw.config.get ? mw.config.get( 'wgUserLanguage' ) : 'en'
+								} ).then( ( data ) => {
+									const m = data && data.query && data.query.allmessages && data.query.allmessages[ 0 ] && data.query.allmessages[ 0 ][ '*' ];
+									return m || 'No difference';
+								} );
+							}
+							// Last resort
+							return $.Deferred().resolve( 'No difference' ).promise();
+						};
+
+						return loadDiffEmptyMessage().then( ( msg ) => {
+							const $empty = $( '<div>' ).addClass( 'diff-empty' ).text( msg );
+							this.parsedContentWidget.setLabel( $empty );
+							this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
+							this.actions.setMode( 'diff' );
+							this.contentArea.setItem( this.parsedContentLayout );
+							this.topBar.setDisabled( true );
+							this.updateSize();
+						} );
 					}
 					const $diff = $( '<table>' ).addClass( 'diff' ).css( 'width', '100%' ).append(
 						$( '<tr>' ).append(
@@ -599,19 +680,25 @@ MainWindow.prototype.onSearchSelect = function ( data ) {
 		return OO.ui.alert( 'There is already a {{' + name + '}} banner' ).then( this.searchBox.focus() );
 	}
 
+	// Also check raw talk wikitext content to prevent duplicates that are not in UI for any reason
+	try {
+		if ( typeof this.talkWikitext === 'string' && this.talkWikitext ) {
+			const exists = containsTemplate( { content: this.talkWikitext, names: [ name ], namespaceAliases: [], topMarker: '__TOP__' } );
+			if ( exists ) {
+				this.topBar.searchBox.popPending();
+				return OO.ui.alert( 'The page already contains {{' + name + '}}' ).then( this.searchBox.focus() );
+			}
+		}
+	} catch ( _e ) { /* ignore */ }
+
 	// If user typed a short form without a recognized prefix, try to auto-prepend the first configured prefix
 	let confirmText;
-	let hasValidPrefix = config.bannerNamePrefixes.some( ( prefix ) => name.toLowerCase().startsWith( prefix.toLowerCase() ) );
-	if ( !hasValidPrefix ) {
-		const prefixes = config.bannerNamePrefixes || [];
-		if ( prefixes.length ) {
-			name = prefixes[ 0 ] + name; // auto-expand to full banner name
-			hasValidPrefix = true;
-		} else {
-			confirmText = new OO.ui.HtmlSnippet(
-				'{{' + mw.html.escape( name ) + '}} is not a recognised WikiProject banner.<br/>Do you want to continue?'
-			);
-		}
+	const ensured = ensureBannerPrefix( name, config.bannerNamePrefixes || [] );
+	name = ensured.name;
+	if ( !ensured.hasValidPrefix && !ensured.addedPrefix ) {
+		confirmText = new OO.ui.HtmlSnippet(
+			'{{' + mw.html.escape( name ) + '}} is not a recognised WikiProject banner.<br/>Do you want to continue?'
+		);
 	} else if ( name === 'WikiProject Disambiguation' && $( '#ca-talk.new' ).length !== 0 && this.bannerList.items.length === 0 ) {
 
 		confirmText = "New talk pages shouldn't be created if they will only contain the \{\{WikiProject Disambiguation\}\} banner. Continue?";
@@ -669,42 +756,13 @@ MainWindow.prototype.onClearAll = function () {
 
 MainWindow.prototype.transformTalkWikitext = function ( talkWikitext ) {
 	const bannersWikitext = this.bannerList.makeWikitext();
-	if ( !talkWikitext ) {
-		return bannersWikitext.trim();
-	}
-	// Reparse templates, in case talkpage wikitext has changed
-	const talkTemplates = parseTemplates( talkWikitext, true );
-	// replace existing banners wikitext with a control character
-	talkTemplates.forEach( ( template ) => {
-		if ( this.existingBannerNames.includes( template.name ) ) {
-			talkWikitext = talkWikitext.replace( template.wikitext, '\x01' );
-		}
-	} );
-	// replace insertion point (first control character) with a different control character
-	talkWikitext = talkWikitext.replace( '\x01', '\x02' );
-	// remove other control characters
-
-	talkWikitext = talkWikitext.replace( /(?:\s|\n)*\x01(?:\s|\n)*/g, '' );
-	// split into wikitext before/after the remaining control character (and trim each section)
-	const talkWikitextSections = talkWikitext.split( '\x02' ).map( ( t ) => t.trim() );
-	if ( talkWikitextSections.length === 2 ) {
-		// Found the insertion point for the banners
-		return ( talkWikitextSections[ 0 ] + '\n' + bannersWikitext.trim() + '\n' + talkWikitextSections[ 1 ] ).trim();
-	}
-	// No explicit insertion point found; make sure no control characters leak into output
-	talkWikitext = talkWikitext.replace( /\x02/g, '' );
-	// Check if there's anything beside templates
-	let tempStr = talkWikitext;
-	talkTemplates.forEach( ( template ) => {
-		tempStr = tempStr.replace( template.wikitext, '' );
-	} );
-	if ( /^#REDIRECT/i.test( talkWikitext ) || !tempStr.trim() ) {
-		// Is a redirect, or everything is a template: insert at the end
-		return talkWikitext.trim() + '\n' + bannersWikitext.trim();
-	} else {
-		// There is non-template content, so insert at the start
-		return bannersWikitext.trim() + '\n' + talkWikitext.trim();
-	}
+	try {
+		log.info( '[transform] talkLen=%d, bannersLen=%d, items=%d', String( talkWikitext || '' ).length, String( bannersWikitext || '' ).length, this.bannerList.items.length );
+		const hasShell = this.bannerList.items.some( ( b ) => b.isShellTemplate );
+		log.info( '[transform] hasShell=%s', hasShell );
+		log.debug( '[transform] banners sample: %s', String( bannersWikitext || '' ).slice( 0, 200 ) );
+	} catch ( _e ) {}
+	return applyBannerInsert( talkWikitext, bannersWikitext, this.existingBannerNames );
 };
 
 MainWindow.prototype.isRatedAndNotStub = function () {
@@ -716,82 +774,59 @@ MainWindow.prototype.isRatedAndNotStub = function () {
 };
 
 MainWindow.prototype.makeEditSummary = function () {
-	const removedBanners = [];
-	const editedBanners = [];
-	const newBanners = [];
+	const removed = [];
+	const edited = [];
+	const added = [];
 	const shortName = ( name ) => name.replace( 'WikiProject ', '' ).replace( 'Subst:', '' );
 
-	// Overall class/importance, if all the same
-	const allClasses = uniqueArray(
-		filterAndMap( this.bannerList.items,
-			( banner ) => banner.hasClassRatings || banner.isShellTemplate,
-			( banner ) => banner.classDropdown.getValue()
-		)
-	);
-	const overallClass = allClasses.length === 1 && allClasses[ 0 ];
-	const allImportances = uniqueArray(
-		filterAndMap( this.bannerList.items,
-			( banner ) => banner.hasImportanceRatings,
-			( banner ) => banner.importanceDropdown.getValue()
-		)
-	);
-	const overallImportance = allImportances.length === 1 && allImportances[ 0 ];
-	// Don't use them unless some have changed
+	const allClasses = uniqueArray( filterAndMap( this.bannerList.items, ( b ) => b.hasClassRatings || b.isShellTemplate, ( b ) => b.classDropdown.getValue() ) );
+	const overallClass = ( allClasses.length === 1 && allClasses[ 0 ] ) || null;
+	const allImportances = uniqueArray( filterAndMap( this.bannerList.items, ( b ) => b.hasImportanceRatings, ( b ) => b.importanceDropdown.getValue() ) );
+	const overallImportance = ( allImportances.length === 1 && allImportances[ 0 ] ) || null;
+
 	let someClassesChanged = false;
 	let someImportancesChanged = false;
 
-	// removed banners:
 	this.existingBannerNames.forEach( ( name ) => {
-		const existingBanner = this.bannerList.items.find( ( banner ) => banner.name === name || banner.bypassedName === name );
-		if ( !existingBanner ) {
-			removedBanners.push( '−' + shortName( name ) );
+		const exists = this.bannerList.items.find( ( b ) => b.name === name || b.bypassedName === name );
+		if ( !exists ) {
+			removed.push( '−' + shortName( name ) );
 		}
 	} );
-	// edited & new banners
-	this.bannerList.items.forEach( ( banner ) => {
-		const isNew = !banner.wikitext; // not added from wikitext on page
-		if ( !isNew && !banner.changed ) {
-			// Not changed
+
+	this.bannerList.items.forEach( ( b ) => {
+		const isNew = !b.wikitext;
+		if ( !isNew && !b.changed ) {
 			return;
 		}
-		let newClass = banner.hasClassRatings && ( isNew || banner.classChanged ) && banner.classDropdown.getValue();
+		let newClass = b.hasClassRatings && ( isNew || b.classChanged ) && b.classDropdown.getValue();
 		if ( newClass ) {
 			someClassesChanged = true;
 		}
 		if ( overallClass ) {
 			newClass = null;
 		}
-
-		let newImportance = banner.hasImportanceRatings && ( isNew || banner.importanceChanged ) && banner.importanceDropdown.getValue();
+		let newImportance = b.hasImportanceRatings && ( isNew || b.importanceChanged ) && b.importanceDropdown.getValue();
 		if ( newImportance ) {
 			someImportancesChanged = true;
 		}
 		if ( overallImportance ) {
 			newImportance = null;
 		}
-
-		let rating = ( newClass && newImportance ) ?
-			newClass + '/' + newImportance :
-			newClass || newImportance || '';
+		let rating = ( newClass && newImportance ) ? ( newClass + '/' + newImportance ) : ( newClass || newImportance || '' );
 		if ( rating ) {
 			rating = ' (' + rating + ')';
 		}
-
 		if ( isNew ) {
-			newBanners.push( '+' + shortName( banner.name ) + rating );
+			added.push( '+' + shortName( b.name ) + rating );
 		} else {
-			editedBanners.push( shortName( banner.name ) + rating );
+			edited.push( shortName( b.name ) + rating );
 		}
 	} );
-	// overall rating
-	let overallRating = ( someClassesChanged && overallClass && someImportancesChanged && overallImportance ) ?
-		overallClass + '/' + overallImportance :
-		( someClassesChanged && overallClass ) || ( someImportancesChanged && overallImportance ) || '';
-	if ( overallRating ) {
-		overallRating = ' (' + overallRating + ')';
-	}
 
-	return `Assessment${ overallRating }: ${ [ ...editedBanners, ...newBanners, ...removedBanners ].join( ', ' ) }${ config.script.advert }`;
+	const effOverallClass = ( someClassesChanged ? overallClass : null );
+	const effOverallImportance = ( someImportancesChanged ? overallImportance : null );
+	return buildEditSummary( { removed, edited, added, overallClass: effOverallClass, overallImportance: effOverallImportance, advert: config.script.advert } );
 };
 
 export default MainWindow;

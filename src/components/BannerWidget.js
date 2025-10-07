@@ -4,7 +4,12 @@ import ParameterWidget from './ParameterWidget.js';
 import DropdownParameterWidget from './DropdownParameterWidget.js';
 import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget.js';
 import { filterAndMap, classMask, importanceMask } from '@utils/util.js';
-import { Template, getWithRedirectTo } from '@utils/Template.js';
+import { Template } from '@utils/models/TemplateModel.js';
+import { isShellTemplate } from '@services/templateShell.js';
+import { loadParamDataAndSuggestions } from '@services/templateParams.js';
+import { loadRatings } from '@services/templateRatings.js';
+import { addMissingParams } from '@services/autofill.js';
+import { getWithRedirectTo } from '@services/templateRedirects.js';
 import HorizontalLayoutWidget from './HorizontalLayoutWidget.js';
 import globalConfig from '@constants/config.js';
 // <nowiki>
@@ -53,7 +58,7 @@ function BannerWidget( template, config ) {
 	this.endBracesStyle = template.endBracesStyle;
 	this.mainText = template.getTitle().getMainText();
 	this.redirectTargetMainText = template.redirectTarget && template.redirectTarget.getMainText();
-	this.isShellTemplate = template.isShellTemplate();
+	this.isShellTemplate = isShellTemplate( template );
 	this.changed = template.parameters.some( ( parameter ) => parameter.autofilled ); // initially false, unless some parameters were autofilled
 	this.hasClassRatings = template.classes && template.classes.length;
 	this.hasImportanceRatings = template.importances && template.importances.length;
@@ -323,14 +328,9 @@ BannerWidget.newFromTemplateName = function ( templateName, data, config ) {
 	}
 	return getWithRedirectTo( template )
 		.then( ( resolvedTemplate ) => $.when(
-			resolvedTemplate.setClassesAndImportances(),
-			resolvedTemplate.setParamDataAndSuggestions()
-		).then( () => {
-			// Add missing required/suggested values
-			resolvedTemplate.addMissingParams();
-			// Return the now-modified template
-			return resolvedTemplate;
-		} ) )
+			loadParamDataAndSuggestions( resolvedTemplate ),
+			loadRatings( resolvedTemplate )
+		).then( () => addMissingParams( resolvedTemplate ) ) )
 		.then( ( finalTemplate ) => new BannerWidget( finalTemplate, config ) );
 };
 
@@ -501,11 +501,14 @@ BannerWidget.prototype.bypassRedirect = function () {
 };
 
 BannerWidget.prototype.makeWikitext = function () {
-	if ( !this.changed && this.wikitext ) {
+	// For non-shell banners, if nothing changed and original wikitext is available, reuse it.
+	// For shell banner we must always render from current state so that temporary param1 (inner content)
+	// added by BannerListWidget.makeWikitext is respected.
+	if ( !this.isShellTemplate && !this.changed && this.wikitext ) {
 		return this.wikitext;
 	}
-	const pipe = this.pipeStyle;
-	const equals = this.equalsStyle;
+	const pipe = this.pipeStyle || '|';
+	const equals = this.equalsStyle || '=';
 	const classItem = ( this.hasClassRatings || this.isShellTemplate ) && this.classDropdown.getMenu().findSelectedItem();
 	const classVal = classItem && classItem.getData();
 	const importanceItem = this.hasImportanceRatings && this.importanceDropdown.getMenu().findSelectedItem();
@@ -516,7 +519,13 @@ BannerWidget.prototype.makeWikitext = function () {
 		( ( this.hasClassRatings || this.isShellTemplate ) && classVal !== null ? `${ pipe }${ this.classParamName || 'class' }${ equals }${ classVal || '' }` : '' ) +
 		( this.hasImportanceRatings && importanceVal !== null ? `${ pipe }${ this.importanceParamName || 'importance' }${ equals }${ importanceVal || '' }` : '' ) +
 		this.parameterList.getParameterItems()
-			.map( ( parameter ) => parameter.makeWikitext( pipe, equals ) )
+			.map( ( parameter ) => {
+				if ( this.isShellTemplate && String( parameter.name ) === '1' ) {
+					// Render shell inner content as positional parameter (no "1=")
+					return pipe + ( parameter.value || '' );
+				}
+				return parameter.makeWikitext( pipe, equals );
+			} )
 			.join( '' ) +
 		this.endBracesStyle )
 		.replace( /\n+}}$/, '\n}}' ); // avoid empty line at end like [[Special:Diff/925982142]]

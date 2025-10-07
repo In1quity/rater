@@ -1,4 +1,6 @@
 // <nowiki>
+import logger from '@services/logger.js';
+const log = logger.get( 'SuggestionLookup' );
 
 const SuggestionLookupTextInputWidget = function SuggestionLookupTextInputWidget( config ) {
 	OO.ui.TextInputWidget.call( this, config );
@@ -13,11 +15,14 @@ OO.mixinClass( SuggestionLookupTextInputWidget, OO.ui.mixin.LookupElement );
 SuggestionLookupTextInputWidget.prototype.setSuggestions = function ( suggestions ) {
 	if ( !Array.isArray( suggestions ) ) {
 		if ( suggestions !== null && typeof suggestions !== 'undefined' ) {
-			console.warn( '[Rater] SuggestionLookupTextInputWidget.prototype.setSuggestions called with a non-array value:', suggestions );
+			log.warn( 'setSuggestions called with a non-array value:', suggestions );
 		}
 		return;
 	}
 	this.suggestions = suggestions;
+	try {
+		log.info( '[Suggestion] setSuggestions: %d items', suggestions.length );
+	} catch ( _e ) { /* ignore */ }
 };
 
 // Returns data, as a resolution to a promise, to be passed to #getLookupMenuOptionsFromData
@@ -46,7 +51,11 @@ SuggestionLookupTextInputWidget.prototype.getLookupMenuOptionsFromData = functio
 			label: optionItem.label || optionItem.data
 		} );
 	};
-	return this.suggestions.filter( labelMatchesInputVal ).map( makeMenuOptionWidget );
+	const filtered = this.suggestions.filter( labelMatchesInputVal );
+	try {
+		log.debug( '[Suggestion] filter: value="%s" → %d/%d matched', this.getValue(), filtered.length, this.suggestions.length );
+	} catch ( _e ) { /* ignore */ }
+	return filtered.map( makeMenuOptionWidget );
 };
 
 // Extend onLookupMenuChoose method to emit an choose event

@@ -2,7 +2,10 @@ import config from '@constants/config.js';
 import BannerWidget from './BannerWidget.js';
 import { normaliseYesNo, filterAndMap, uniqueArray } from '@utils/util.js';
 import ParameterWidget from './ParameterWidget.js';
+import logger from '@services/logger.js';
 // <nowiki>
+
+const log = logger.get( 'BannerList' );
 
 const BannerListWidget = function BannerListWidget( widgetConfig ) {
 	widgetConfig = widgetConfig || {};
@@ -246,13 +249,23 @@ BannerListWidget.prototype.setPreferences = function ( prefs ) {
 };
 
 BannerListWidget.prototype.makeWikitext = function () {
+	try {
+		log.info( '[makeWikitext] items=%d', this.items.length );
+	} catch ( _e ) {}
 	const bannersWikitext = filterAndMap(
 		this.items,
 		( banner ) => !banner.isShellTemplate,
 		( banner ) => banner.makeWikitext()
 	).join( '\n' );
+	try {
+		log.info( '[makeWikitext] nonShellLen=%d', bannersWikitext.length );
+		log.debug( '[makeWikitext] nonShell sample: %s', bannersWikitext.slice( 0, 200 ) );
+	} catch ( _e ) {}
 	const shellTemplate = this.items.find( ( banner ) => banner.isShellTemplate );
 	if ( !shellTemplate ) {
+		try {
+			log.info( '[makeWikitext] no shell → return nonShell' );
+		} catch ( _e ) {}
 		return bannersWikitext;
 	}
 	const shellParam1 = new ParameterWidget( {
@@ -261,8 +274,19 @@ BannerListWidget.prototype.makeWikitext = function () {
 			( shellTemplate.nonStandardTemplates ? shellTemplate.nonStandardTemplates + '\n' : '' )
 	} );
 	shellTemplate.parameterList.addItems( [ shellParam1 ] );
+	try {
+		const tmpCount = shellTemplate.parameterList.getParameterItems().length;
+		log.debug( '[makeWikitext] temp param added, count=%d', tmpCount );
+	} catch ( _e ) {}
 	const shellWikitext = shellTemplate.makeWikitext();
+	try {
+		log.debug( '[makeWikitext] after render, count=%d', shellTemplate.parameterList.getParameterItems().length );
+	} catch ( _e ) {}
 	shellTemplate.parameterList.removeItems( [ shellParam1 ] );
+	try {
+		log.info( '[makeWikitext] shellLen=%d', shellWikitext.length );
+		log.debug( '[makeWikitext] shell sample: %s', shellWikitext.slice( 0, 200 ) );
+	} catch ( _e ) {}
 	return shellWikitext;
 };
 
