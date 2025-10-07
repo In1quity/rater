@@ -1,11 +1,14 @@
 import { setupRater, API, makeErrorMsg, windowManager } from './services/index.js';
+import logger from './services/logger.js';
 import i18n from './services/i18n.js';
 import './styles/styles.css';
 import { config, loadExternalConfig } from './constants/index.js';
 // <nowiki>
 
+const log = logger.get( 'app' );
+
 function startApp() {
-	console.log( '[Rater] startApp called' );
+	log.info( 'startApp called' );
 
 	const showMainWindow = ( data ) => {
 		if ( !data || !data.success ) {
@@ -56,25 +59,25 @@ function startApp() {
 }
 
 // Ensure i18n is loaded before constructing UI so initial labels are localized
-console.log( '[Rater] Starting initialization' );
+log.info( 'Starting initialization' );
 try {
 	// Ensure external per-wiki config (if any) is loaded before i18n/UI
 	loadExternalConfig().then( () => {
-		console.log( '[Rater] External config loaded' );
+		log.info( 'External config loaded' );
 		// Update API user agent with config version
 		if ( config && config.script && config.script.version ) {
 			API.updateUserAgent( config.script.version );
 		}
 		return i18n.load();
 	} ).then( () => {
-		console.log( '[Rater] i18n loaded' );
+		log.info( 'i18n loaded' );
 		startApp();
 	} ).catch( ( e ) => {
-		console.log( '[Rater] Error in initialization:', e );
+		log.error( 'Error in initialization:', e );
 		startApp();
 	} );
 } catch ( e ) {
-	console.log( '[Rater] Error in initialization:', e );
+	log.error( 'Error in initialization:', e );
 	startApp();
 }
 // </nowiki>

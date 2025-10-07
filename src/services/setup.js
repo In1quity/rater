@@ -1,12 +1,24 @@
 import config from '@constants/config.js';
 import i18n from '@services/i18n.js';
 import API from '@services/api.js';
-import { parseTemplates, getWithRedirectTo } from '@utils/Template.js';
-import { getBannerNames } from '@services/getBanners.js';
+import { Template } from '@utils/models/TemplateModel.js';
+import { isShellTemplate } from '@services/templateShell.js';
+import { loadParamDataAndSuggestions } from '@services/templateParams.js';
+import { loadRatings } from '@services/templateRatings.js';
+import { addMissingParams } from '@services/autofill.js';
+import { getWithRedirectTo } from '@services/templateRedirects.js';
+import { stripNamespacePrefix, normalizeTemplateName } from '@utils/wikitext.js';
+import { findBannerTemplatesOnTalk } from '@services/templateScanner.js';
+// Aliases utilities (namespace-aware)
+import { collectAliasesForNames } from '@utils/aliases.js';
+import { getBannerNames } from '@services/collectBannersFromCategory.js';
 import * as cache from '@services/cache.js';
 import windowManager from '@services/windowManager.js';
 import { getPrefs } from '@services/prefs.js';
 import { filterAndMap } from '@utils/util.js';
+import { fetchTalkWikitext, fetchLatestRevId } from '@services/pageContent.js';
+import { getPrediction as getOresPrediction } from '@services/ores.js';
+import { checkSubjectFeatures } from '@services/subjectPage.js';
 // <nowiki>
 
 const setupRater = function ( clickEvent ) {
@@ -28,107 +40,45 @@ const setupRater = function ( clickEvent ) {
 	const bannersPromise = getBannerNames();
 
 	// Load talk page (task 2)
-	const loadTalkPromise = API.get( {
-		action: 'query',
-		prop: 'revisions',
-		rvprop: 'content',
-		rvsection: '0',
-		titles: talkPage.getPrefixedText(),
-		indexpageids: 1
-	} ).then( ( result ) => {
-		const id = result.query.pageids;
-		const wikitext = ( id < 0 ) ? '' : result.query.pages[ id ].revisions[ 0 ][ '*' ];
-		return wikitext;
-	} );
+	const loadTalkPromise = fetchTalkWikitext( talkPage.getPrefixedText() );
 
 	// Parse talk page for banners (task 3)
-	const parseTalkPromise = loadTalkPromise.then( ( wikitext ) => parseTemplates( wikitext, true ) ) // Get all templates
-		.then( ( templates ) => templates.filter( ( template ) => template.getTitle() !== null ) ) // Filter out invalid templates (e.g. parser functions)
-		.then( ( templates ) => getWithRedirectTo( templates ) ) // Check for redirects
-		.then( ( templates ) => bannersPromise.then( ( allBanners ) => filterAndMap( // Get list of all banner templates
-			templates,
-			// Filter out non-banners
-			( template ) => {
-				if ( template.isShellTemplate() ) {
-					return true;
-				}
-				const mainText = template.redirectTarget ?
-					template.redirectTarget.getMainText() :
-					template.getTitle().getMainText();
-				return allBanners.withRatings.includes( mainText ) ||
-						allBanners.withoutRatings.includes( mainText ) ||
-						allBanners.wrappers.includes( mainText ) ||
-						allBanners.notWPBM.includes( mainText ) ||
-						allBanners.inactive.includes( mainText ) ||
-						allBanners.wir.includes( mainText );
-			},
-			// Set additional properties if needed
-			( template ) => {
-				const mainText = template.redirectTarget ?
-					template.redirectTarget.getMainText() :
-					template.getTitle().getMainText();
-				if ( allBanners.wrappers.includes( mainText ) ) {
-					template.redirectTarget = mw.Title.newFromText( 'Template:Subst:' + mainText );
-				}
-				if (
-					allBanners.withoutRatings.includes( mainText ) ||
-							allBanners.wir.includes( mainText )
-				) {
-					template.withoutRatings = true;
-				}
-				if ( allBanners.inactive.includes( mainText ) ) {
-					template.inactiveProject = true;
-				}
-				return template;
-			}
-		)
-		) );
+	const parseTalkPromise = loadTalkPromise.then( ( wikitext ) => bannersPromise.then( ( allBanners ) => findBannerTemplatesOnTalk( {
+		wikitext,
+		allBanners,
+		namespaceAliases: config.templateNamespaceAliases || [],
+		shellTemplate: config && config.shellTemplate,
+		bannerNamePrefixes: config.bannerNamePrefixes || []
+	} )
+	) );
 
 	// Retrieve and store TemplateData first, then classes/importances (task 4)
 	const templateDetailsPromise = parseTalkPromise.then( ( templates ) => {
 		const perTemplate = templates.map( ( template ) => {
-			if ( template.isShellTemplate() ) {
+			if ( isShellTemplate( template ) ) {
 				return $.Deferred().resolve();
 			}
-			return template.setParamDataAndSuggestions().then( () => template.setClassesAndImportances() );
+			return loadParamDataAndSuggestions( template ).then( () => loadRatings( template ) );
 		} );
 		return $.when.apply( null, perTemplate ).then( () => {
 			templates.forEach( ( t ) => {
-				t.addMissingParams();
+				addMissingParams( t );
 			} );
 			return templates;
 		} );
 	} );
 
 	// Check subject page features (task 5) - but don't error out if request fails
-	const subjectPageCheckPromise = API.get( {
-		action: 'query',
-		format: 'json',
-		formatversion: '2',
-		prop: 'categories',
-		titles: subjectPage.getPrefixedText(),
-		redirects: 1,
-		clcategories: Object.values( config.subjectPageCategories )
-	} ).then( ( response ) => {
-		if ( !response || !response.query || !response.query.pages ) {
-			return null;
-		}
-		const redirectTarget = response.query.redirects && response.query.redirects[ 0 ].to || false;
-		if ( redirectTarget || !subjectIsArticle ) {
-			return { redirectTarget };
-		}
-		const page = response.query.pages[ 0 ];
-		const hasCategory = ( category ) => page.categories && page.categories.find( ( cat ) => cat.title === category );
-		return {
-			redirectTarget,
-			disambig: hasCategory( config.subjectPageCategories.disambig ),
-			stubtag: hasCategory( config.subjectPageCategories.stub ),
-			isGA: hasCategory( config.subjectPageCategories.goodArticle ),
-			isFA: hasCategory( config.subjectPageCategories.featuredArticle ),
-			isFL: hasCategory( config.subjectPageCategories.featuredList ),
-			isList: !hasCategory( config.subjectPageCategories.featuredList ) && /^Lists? of/.test( subjectPage.getPrefixedText() )
-		};
-	} ).catch( () => null ); // Failure ignored
+	const subjectPageCheckPromise = checkSubjectFeatures( subjectPage.getPrefixedText(), subjectIsArticle, config.subjectPageCategories )
+		.then( ( res ) => {
+			if ( res && res.redirectTarget ) {
+				return res;
+			}
+			if ( res ) {
+				return $.extend( {}, res, { isList: !res.isFL && /^Lists? of/.test( subjectPage.getPrefixedText() ) } );
+			}
+			return res;
+		} );
 
 	// Retrieve rating from ORES (task 6, only needed for articles) - but don't error out if request fails
 	const shouldGetOres = ( subjectIsArticle ); // TODO: Don't need to get ORES for redirects or disambigs
@@ -136,59 +86,8 @@ const setupRater = function ( clickEvent ) {
 	if ( shouldGetOres ) {
 		const latestRevIdPromise = !currentPage.isTalkPage() ?
 			$.Deferred().resolve( config.mw.wgRevisionId ) :
-			API.get( {
-				action: 'query',
-				format: 'json',
-				prop: 'revisions',
-				titles: subjectPage.getPrefixedText(),
-				rvprop: 'ids',
-				indexpageids: 1
-			} ).then( ( result ) => {
-				if ( result.query.redirects ) {
-					return false;
-				}
-				const id = result.query.pageids;
-				const page = result.query.pages[ id ];
-				if ( page.missing === '' ) {
-					return false;
-				}
-				if ( id < 0 ) {
-					return $.Deferred().reject();
-				}
-				return page.revisions[ 0 ].revid;
-			} );
-		oresPromise = latestRevIdPromise.then( ( latestRevId ) => {
-			if ( !latestRevId ) {
-				return false;
-			}
-			return API.getORES( latestRevId, config.ores.wiki )
-				.then( ( result ) => {
-					const wiki = ( config && config.ores && config.ores.wiki ) || 'enwiki';
-					const root = result && ( result[ wiki ] || result[ Object.keys( result )[ 0 ] ] );
-					if ( !root || !root.scores || !root.scores[ latestRevId ] || !root.scores[ latestRevId ].articlequality ) {
-						return $.Deferred().reject( 'ok-but-empty' );
-					}
-					const data = root.scores[ latestRevId ].articlequality;
-					if ( data.error ) {
-						return $.Deferred().reject( data.error.type, data.error.message );
-					}
-					const prediction = data.score.prediction;
-					const probabilities = data.score.probability;
-					const tiers = ( config && config.ores && Array.isArray( config.ores.topTierClasses ) ) ? config.ores.topTierClasses : [ 'FA', 'GA' ];
-					const baseline = ( config && config.ores && config.ores.baselineClass ) || 'B';
-					if ( tiers.includes( prediction ) ) {
-						const sum = tiers.reduce( ( acc, k ) => acc + ( probabilities[ k ] || 0 ), 0 ) + ( probabilities[ baseline ] || 0 );
-						return {
-							prediction: baseline + ' ' + i18n.t( 'ores-or-higher' ),
-							probability: ( sum * 100 ).toFixed( 1 ) + '%'
-						};
-					}
-					return {
-						prediction,
-						probability: ( probabilities[ prediction ] * 100 ).toFixed( 1 ) + '%'
-					};
-				} ).catch( () => null ); // Failure ignored;
-		} );
+			fetchLatestRevId( subjectPage.getPrefixedText() );
+		oresPromise = latestRevIdPromise.then( ( latestRevId ) => getOresPrediction( latestRevId ) );
 	}
 
 	// Open the load dialog

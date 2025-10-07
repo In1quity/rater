@@ -4,7 +4,12 @@ import ParameterWidget from './ParameterWidget.js';
 import DropdownParameterWidget from './DropdownParameterWidget.js';
 import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget.js';
 import { filterAndMap, classMask, importanceMask } from '@utils/util.js';
-import { Template, getWithRedirectTo } from '@utils/Template.js';
+import { Template } from '@utils/models/TemplateModel.js';
+import { isShellTemplate } from '@services/templateShell.js';
+import { loadParamDataAndSuggestions } from '@services/templateParams.js';
+import { loadRatings } from '@services/templateRatings.js';
+import { addMissingParams } from '@services/autofill.js';
+import { getWithRedirectTo } from '@services/templateRedirects.js';
 import HorizontalLayoutWidget from './HorizontalLayoutWidget.js';
 import globalConfig from '@constants/config.js';
 // <nowiki>
@@ -53,7 +58,7 @@ function BannerWidget( template, config ) {
 	this.endBracesStyle = template.endBracesStyle;
 	this.mainText = template.getTitle().getMainText();
 	this.redirectTargetMainText = template.redirectTarget && template.redirectTarget.getMainText();
-	this.isShellTemplate = template.isShellTemplate();
+	this.isShellTemplate = isShellTemplate( template );
 	this.changed = template.parameters.some( ( parameter ) => parameter.autofilled ); // initially false, unless some parameters were autofilled
 	this.hasClassRatings = template.classes && template.classes.length;
 	this.hasImportanceRatings = template.importances && template.importances.length;
@@ -323,14 +328,9 @@ BannerWidget.newFromTemplateName = function ( templateName, data, config ) {
 	}
 	return getWithRedirectTo( template )
 		.then( ( resolvedTemplate ) => $.when(
-			resolvedTemplate.setClassesAndImportances(),
-			resolvedTemplate.setParamDataAndSuggestions()
-		).then( () => {
-			// Add missing required/suggested values
-			resolvedTemplate.addMissingParams();
-			// Return the now-modified template
-			return resolvedTemplate;
-		} ) )
+			loadParamDataAndSuggestions( resolvedTemplate ),
+			loadRatings( resolvedTemplate )
+		).then( () => addMissingParams( resolvedTemplate ) ) )
 		.then( ( finalTemplate ) => new BannerWidget( finalTemplate, config ) );
 };
 

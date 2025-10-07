@@ -69,6 +69,14 @@ const filterAndMap = function ( array, filterPredicate, mapTransform ) {
 	);
 };
 
+// Remove internal control characters before displaying in UI or saving
+const sanitizeControlChars = function ( text ) {
+	if ( text === null || typeof text === 'undefined' ) {
+		return text;
+	}
+	return String( text ).replace( /[\x01\x02]/g, '' );
+};
+
 /**
  *
  * @param {string[]|number[]} array
@@ -184,6 +192,38 @@ function importanceMask( importance ) {
 	return importance.slice( 0, 1 ).toUpperCase() + importance.slice( 1 ).toLowerCase();
 }
 
+// String utilities
+const strReplaceAt = function ( string, index, char ) {
+	return string.slice( 0, index ) + char + string.slice( index + 1 );
+};
+
+const normalizeString = function ( value ) {
+	return String( value === null || typeof value === 'undefined' ? '' : value );
+};
+
+const findTopLevelDelimiter = function ( text, delimiter, openChar = '{', closeChar = '}' ) {
+	const s = normalizeString( text );
+	let depth = 0;
+	for ( let i = 0; i < s.length; i++ ) {
+		const ch = s[ i ];
+		const next = s[ i + 1 ];
+		if ( ch === openChar && next === openChar ) {
+			depth += 2;
+			i++;
+			continue;
+		}
+		if ( ch === closeChar && next === closeChar ) {
+			depth -= 2;
+			i++;
+			continue;
+		}
+		if ( ch === delimiter && depth === 0 ) {
+			return i;
+		}
+	}
+	return -1;
+};
+
 export {
 	isAfterDate,
 	filterAndMap,
@@ -191,6 +231,9 @@ export {
 	mostFrequent,
 	uniqueArray,
 	classMask,
-	importanceMask
+	importanceMask,
+	strReplaceAt,
+	normalizeString,
+	findTopLevelDelimiter
 };
 // </nowiki>

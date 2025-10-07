@@ -2,15 +2,15 @@ import API from '@services/api.js';
 import { isAfterDate, uniqueArray } from '@utils/util.js';
 import * as cache from '@services/cache.js';
 import config from '@constants/config.js';
+import { normalizeTemplateName, stripNamespacePrefix } from '@utils/wikitext.js';
+import logger from '@services/logger.js';
 // <nowiki>
 
-// Debug logger (enable with window.RATER_DEBUG = true)
+const log = logger.get( 'collectBannersFromCategory' );
 const dlog = function () {
 	try {
-		if ( window && window.RATER_DEBUG ) {
-			console.log.apply( console, [ '[Rater:getBanners]' ].concat( [].slice.call( arguments ) ) );
-		}
-	} catch ( e ) { /* ignore */ }
+		log.debug.apply( null, arguments );
+	} catch ( _e ) {}
 };
 
 const cacheBanners = function ( banners ) {
@@ -29,9 +29,8 @@ const getListOfBannersFromApi = function () {
 		dlog( 'Start getListOfBannersFromApi' );
 	} catch ( e ) { /* ignore */ }
 
-	// Localized Template namespace prefix (e.g., "Template:", "Шаблон:")
+	// Localized Template namespace name (e.g., "Template", "Шаблон")
 	const templateNsName = ( config.mw && config.mw.wgFormattedNamespaces && ( config.mw.wgFormattedNamespaces[ 10 ] || 'Template' ) ) || 'Template';
-	const templateNsPrefix = String( templateNsName ) + ':';
 	try {
 		dlog( 'Using template NS:', templateNsName );
 	} catch ( e ) { /* ignore */ }
@@ -48,6 +47,12 @@ const getListOfBannersFromApi = function () {
 	try {
 		dlog( 'Root categories:', categories.map( ( c ) => c.title + ' (' + c.abbreviation + ')' ) );
 	} catch ( e ) { /* ignore */ }
+
+	// Edge case: no categories configured
+	if ( categories.length === 0 ) {
+		const base = { withRatings: [], withoutRatings: [], wrappers: [], notWPBM: [], inactive: [], wir: [] };
+		return $.Deferred().resolve( base );
+	}
 
 	// Recursively collect all template pages (ns 10) from a category and its subcategories
 	const collectTemplatesRecursively = function ( rootCategoryTitle ) {
@@ -79,12 +84,9 @@ const getListOfBannersFromApi = function () {
 				members.forEach( ( m ) => {
 					let title = String( m && m.title || '' );
 					if ( m && m.ns === 10 ) {
-						if ( title.indexOf( templateNsPrefix ) === 0 ) {
-							title = title.slice( templateNsPrefix.length );
-						} else if ( title.indexOf( 'Template:' ) === 0 ) {
-							title = title.slice( 'Template:'.length );
-						}
-						outTitles.push( title );
+						// Strip namespace via utility (uses aliases/config)
+						title = stripNamespacePrefix( title, [ templateNsName, 'Template' ] );
+						outTitles.push( normalizeTemplateName( title ) );
 					} else if ( m && m.ns === 14 && !seen[ title ] ) {
 						seen[ title ] = true;
 						queue.push( title );
@@ -125,6 +127,8 @@ const getListOfBannersFromApi = function () {
 					categories[ index ].banners = titles || [];
 					try {
 						dlog( 'Collected for', cat.title, ':', ( titles || [] ).length );
+						log.debug( 'Found %d templates in %s:', ( titles || [] ).length, cat.title );
+						( titles || [] ).forEach( ( template, i ) => log.debug( '  %d. %s', i + 1, template ) );
 					} catch ( e ) { /* ignore */ }
 				} )
 				.always( () => {
@@ -140,6 +144,11 @@ const getListOfBannersFromApi = function () {
 		} );
 		try {
 			dlog( 'Final groups:', Object.keys( base ).map( ( k ) => k + ':' + ( base[ k ] || [] ).length ) );
+			Object.keys( base ).forEach( ( k ) => {
+				const arr = base[ k ] || [];
+				log.debug( '%s (%d):', k, arr.length );
+				arr.forEach( ( t, i ) => log.debug( '  %d. %s', i + 1, t ) );
+			} );
 		} catch ( e ) { /* ignore */ }
 		finishedPromise.resolve( base );
 	} );
@@ -173,6 +182,14 @@ const getBannersFromCache = function () {
 	}
 	try {
 		dlog( 'Cache hit: banners' );
+		// Also print cached groups and items for debugging
+		const b = ( cachedBanners && cachedBanners.value ) || {};
+		const groups = [ 'withRatings', 'withoutRatings', 'wrappers', 'notWPBM', 'inactive', 'wir' ];
+		groups.forEach( ( k ) => {
+			const arr = b[ k ] || [];
+			log.debug( '%s (%d):', k, arr.length );
+			arr.forEach( ( t, i ) => log.debug( '  %d. %s', i + 1, t ) );
+		} );
 	} catch ( e ) { /* ignore */ }
 	return $.Deferred().resolve( cachedBanners.value );
 };

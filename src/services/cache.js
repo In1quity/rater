@@ -1,4 +1,6 @@
 import { isAfterDate } from '@utils/util.js';
+import logger from '@services/logger.js';
+const log = logger.get( 'cache' );
 // <nowiki>
 
 /** write
@@ -38,12 +40,8 @@ const read = function ( key ) {
 			val = JSON.parse( stringVal );
 		}
 	} catch ( e ) {
-		console.log( '[Rater] error reading ' + key + ' from localStorage cache:' );
-		console.log(
-			'\t' + e.name + ' message: ' + e.message +
-			( e.at ? ' at: ' + e.at : '' ) +
-			( e.text ? ' text: ' + e.text : '' )
-		);
+		log.warn( 'error reading %s from localStorage cache:', key );
+		log.warn( '\t%s message: %s%s%s', e.name, e.message, ( e.at ? ' at: ' + e.at : '' ), ( e.text ? ' text: ' + e.text : '' ) );
 	}
 	return val || null;
 };

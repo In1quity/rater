@@ -1,7 +1,7 @@
 import config from '@constants/config.js';
 import i18n from '@services/i18n.js';
 import SuggestionLookupTextInputWidget from './SuggestionLookupTextInputWidget.js';
-import { getBannerNames } from '@services/getBanners.js';
+import { buildBannerSuggestions } from '@services/autofill.js';
 // <nowiki>
 
 // Helper function to remove the first matching prefix from banner name
@@ -35,50 +35,10 @@ function TopBarWidget( opts ) {
 		$element: $( "<div style='display:inline-block; margin:0 -1px; width:calc(100% - 55px);'>" ),
 		$overlay: this.$overlay
 	} );
-	getBannerNames()
-		.then( ( banners ) => [
-			...banners.withRatings.map( ( bannerName ) => ( {
-				label: removeBannerPrefix( bannerName ),
-				data: {
-					name: bannerName
-				}
-			} ) ),
-			...banners.withoutRatings.map( ( bannerName ) => ( {
-				label: removeBannerPrefix( bannerName ),
-				data: {
-					name: bannerName,
-					withoutRatings: true
-				}
-			} ) ),
-			...banners.wrappers.map( ( bannerName ) => ( {
-				label: removeBannerPrefix( bannerName ) + ' [template wrapper]',
-				data: {
-					name: bannerName,
-					wrapper: true
-				}
-			} ) ),
-			...banners.notWPBM.map( ( bannerName ) => ( {
-				label: removeBannerPrefix( bannerName ),
-				data: {
-					name: bannerName
-				}
-			} ) ),
-			...banners.inactive.map( ( bannerName ) => ( {
-				label: removeBannerPrefix( bannerName ) + ' [inactive]',
-				data: {
-					name: bannerName,
-					withoutRatings: true
-				}
-			} ) ),
-			...banners.wir.map( ( bannerName ) => ( {
-				label: bannerName + ' [Women In Red meetup/initiative]',
-				data: {
-					name: bannerName,
-					withoutRatings: true
-				}
-			} ) )
-		] )
-		.then( ( bannerOptions ) => this.searchBox.setSuggestions( bannerOptions ) );
+	if ( opts && opts.banners ) {
+		buildBannerSuggestions( opts.banners )
+			.then( ( bannerOptions ) => this.searchBox.setSuggestions( bannerOptions ) );
+	}
 
 	// Add button
 	this.addBannerButton = new OO.ui.ButtonWidget( {

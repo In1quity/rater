@@ -1,4 +1,6 @@
 import config from '@constants/config.js';
+import logger from '@services/logger.js';
+const log = logger.get( 'autostart' );
 import { getPrefs } from '@services/prefs.js';
 import API, { makeErrorMsg } from '@services/api.js';
 import setupRater from '@services/setup.js';
@@ -69,7 +71,7 @@ const autoStart = function autoStart() {
 			},
 			( code, jqxhr ) => {
 			// Silently ignore failures (just log to console)
-				console.warn(
+				log.warn(
 					'[Rater] Error while checking whether to autostart.' +
 					( code === null || typeof code === 'undefined' ? '' : ' ' + makeErrorMsg( code, jqxhr ) )
 				);

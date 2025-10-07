@@ -1,4 +1,6 @@
 // <nowiki>
+import logger from '@services/logger.js';
+const log = logger.get( 'SuggestionLookup' );
 
 const SuggestionLookupTextInputWidget = function SuggestionLookupTextInputWidget( config ) {
 	OO.ui.TextInputWidget.call( this, config );
@@ -13,7 +15,7 @@ OO.mixinClass( SuggestionLookupTextInputWidget, OO.ui.mixin.LookupElement );
 SuggestionLookupTextInputWidget.prototype.setSuggestions = function ( suggestions ) {
 	if ( !Array.isArray( suggestions ) ) {
 		if ( suggestions !== null && typeof suggestions !== 'undefined' ) {
-			console.warn( '[Rater] SuggestionLookupTextInputWidget.prototype.setSuggestions called with a non-array value:', suggestions );
+			log.warn( 'setSuggestions called with a non-array value:', suggestions );
 		}
 		return;
 	}

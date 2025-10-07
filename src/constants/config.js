@@ -282,68 +282,6 @@ const loadExternalConfig = function () {
 	return $.Deferred().resolve().promise();
 };
 
-// Cache for shell template aliases
-let shellTemplateAliases = null;
-
-/**
- * Get shell template aliases via API (cached)
- * @param {Object} api - MediaWiki API instance
- * @returns {Promise<Array<string>>} Array of shell template names including aliases
- */
-function getShellTemplateAliases( api ) {
-	if ( shellTemplateAliases ) {
-		return Promise.resolve( shellTemplateAliases );
-	}
-
-	const mainTemplate = config.shellTemplate;
-	if ( !mainTemplate ) {
-		return Promise.resolve( [] );
-	}
-
-	// Step 1: resolve canonical title (follow redirects)
-	return api.get( {
-		action: 'query',
-		redirects: 1,
-		titles: 'Template:' + mainTemplate,
-		format: 'json',
-		formatversion: 2
-	} ).then( ( data ) => {
-		const page = ( data && data.query && data.query.pages && data.query.pages[ 0 ] ) || {};
-		const canonical = page.title ? page.title.replace( /^Template:/, '' ) : mainTemplate;
-
-		// Step 2: fetch all redirects that point to canonical
-		return api.get( {
-			action: 'query',
-			format: 'json',
-			formatversion: 2,
-			prop: 'redirects',
-			titles: 'Template:' + canonical
-		} ).then( ( d2 ) => {
-			const p = ( d2 && d2.query && d2.query.pages && d2.query.pages[ 0 ] ) || {};
-			const redirects = ( p.redirects || [] ).map( ( r ) => r.title ? r.title.replace( /^Template:/, '' ) : '' ).filter( Boolean );
-
-			shellTemplateAliases = [ canonical ].concat( redirects );
-			return shellTemplateAliases;
-		} );
-	} ).catch( () => {
-		// Fallback to main template only
-		shellTemplateAliases = [ mainTemplate ];
-		return shellTemplateAliases;
-	} );
-}
-
-/**
- * Returns cached shell template aliases if available synchronously.
- * Falls back to the configured main template name when cache is empty.
- * @returns {Array<string>}
- */
-function getShellTemplateAliasesSync() {
-	if ( Array.isArray( shellTemplateAliases ) && shellTemplateAliases.length ) {
-		return shellTemplateAliases.slice();
-	}
-	return [ config.shellTemplate ];
-}
-
 export default config;
-export { config, loadExternalConfig, getShellTemplateAliases, getShellTemplateAliasesSync };
+export { config, loadExternalConfig };
 // </nowiki>

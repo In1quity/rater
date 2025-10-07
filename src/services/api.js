@@ -1,10 +1,11 @@
 // <nowiki>
 
 // Initialize API with default user agent
+const DEFAULT_VERSION = ( typeof RATER_VERSION !== 'undefined' && RATER_VERSION ) || 'dev';
 const API = new mw.Api( {
 	ajax: {
 		headers: {
-			'Api-User-Agent': 'Rater/2.7.2 ( https://en.wikipedia.org/wiki/User:Evad37/Rater )'
+			'Api-User-Agent': 'Rater/' + DEFAULT_VERSION + ' ( https://en.wikipedia.org/wiki/User:Evad37/Rater )'
 		}
 	}
 } );
