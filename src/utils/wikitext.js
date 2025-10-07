@@ -5,7 +5,7 @@ import { normalizeString } from './util.js';
 // Utilities for line-based wikitext operations aligned with maintenance-core
 
 // Precompiled/common regexes
-const WS_NBSP_CLASS = '[\\s\\u00A0\\u2000-\\u200A\\u202F\\u205F\\u3000]+'; // whitespace incl. various NBSPs
+const WS_NBSP_CLASS = '[\s\u00A0\u2000-\u200A\u202F\u205F\u3000]+'; // whitespace incl. various NBSPs
 const ESCAPE_REGEX = /[.*+?^${}()|[\]\\]/g;
 
 // Collapse spaces and strip simple warning symbol sequences from headings
@@ -92,50 +92,12 @@ const buildOpenRegexFor = function ( names, namespaceAliases ) {
 	return new RegExp( '^\\{\\{\\s*' + nsPart + '(?:' + alt + ')(?=\\s*(?:\\||}}|$))', 'i' );
 };
 
-// Find a block range delimited by open (matched by openRegex) and a closing '}}'
-const findBlockRange = function ( lines, startIdx, endIdx, openRegex ) {
-	let rqStart = -1;
-	let rqEnd = -1;
-	for ( let i = startIdx; i < endIdx; i++ ) {
-		const line = ( lines[ i ] || '' ).trim();
-		if ( rqStart === -1 && openRegex.test( line ) ) {
-			rqStart = i;
-		}
-		if ( rqStart !== -1 && line === '}}' ) {
-			rqEnd = i;
-			break;
-		}
-	}
-	if ( rqStart !== -1 && rqEnd !== -1 ) {
-		return { start: rqStart, end: rqEnd };
-	}
-	return null;
-};
-
-// Check if any of templateNames occurs within sectionName inside content
-const isAnyTemplateInSection = function ( content, templateNames, sectionName, namespaceAliases, topMarker ) {
-	const lines = String( content || '' ).split( '\n' );
-	const bounds = computeSectionBounds( lines, sectionName, topMarker );
-	if ( bounds.start === -1 ) {
-		return false;
-	}
-	const sectionText = lines.slice( bounds.start, bounds.end ).join( '\n' );
-	const re = buildTemplateRegexFor( templateNames || [], namespaceAliases );
-	return re.test( sectionText );
-};
-
-// Filter those templates that are not present in the given section
-const filterNewTemplates = function ( content, sectionName, list, aliasesMap, namespaceAliases, topMarker ) {
-	const result = [];
-	( list || [] ).forEach( ( t ) => {
-		const code = t.code || ( '{{' + t.name + '}}' );
-		const name = extractTemplateName( code );
-		const aliases = ( aliasesMap && aliasesMap[ name ] ) || [ name ];
-		if ( !isAnyTemplateInSection( content, aliases, sectionName, namespaceAliases, topMarker ) ) {
-			result.push( code );
-		}
-	} );
-	return result;
+// Normalize multiline block: trim trailing spaces per line, collapse >2 newlines, trim ends
+const normalizeBlockText = function ( text ) {
+	return String( text || '' )
+		.replace( /\s+$/gm, '' )
+		.replace( /\n{3,}/g, '\n\n' )
+		.trim();
 };
 
 // Normalize template name for internal comparisons (spaces and nbsp)
@@ -186,6 +148,96 @@ const normalizeTemplateTitle = function ( name ) {
 	return normalizeTemplateName( stripAnyTemplateNs( name ) );
 };
 
+// Check if a line opens a shell template; uses buildOpenRegexFor for robustness
+// Signature: (firstLine, nsAliases, aliases)
+const isShellOpenLine = function ( line, namespaceAliases, shellAliases ) {
+	const first = String( line || '' ).trim();
+	const re = buildOpenRegexFor( shellAliases || [], namespaceAliases || [] );
+	return !!( re && re.test( first ) );
+};
+
+// Compute a top insertion index skipping empty lines and leading non-target template blocks
+// Accepts explicit shellAliases to avoid depending on services from utils layer
+const computeTopInsertIndex = function ( lines, existingBannerNames, shellAliases, namespaceAliases ) {
+	const nsAliases = Array.isArray( namespaceAliases ) ? namespaceAliases : [];
+	const shellOpen = buildOpenRegexFor( shellAliases || [], nsAliases );
+	const bannerOpen = Array.isArray( existingBannerNames ) && existingBannerNames.length ? buildOpenRegexFor( existingBannerNames, nsAliases ) : null;
+	let i = 0;
+	while ( i < lines.length ) {
+		const t = ( lines[ i ] || '' ).trim();
+		if ( t === '' ) {
+			i++;
+			continue;
+		}
+		if ( ( shellOpen && shellOpen.test( t ) ) || ( bannerOpen && bannerOpen.test( t ) ) ) {
+			break;
+		}
+		if ( /^\{\{/.test( t ) ) {
+			let j = i + 1;
+			let closed = false;
+			while ( j < lines.length ) {
+				const u = ( lines[ j ] || '' ).trim();
+				if ( u === '}}' ) {
+					j++;
+					closed = true;
+					break;
+				}
+				j++;
+			}
+			i = closed ? j : i + 1;
+			continue;
+		}
+		break;
+	}
+	return i;
+};
+
+// Find a block range delimited by open (matched by openRegex) and a closing '}}'
+const findBlockRange = function ( lines, startIdx, endIdx, openRegex ) {
+	let rqStart = -1;
+	let rqEnd = -1;
+	for ( let i = startIdx; i < endIdx; i++ ) {
+		const line = ( lines[ i ] || '' ).trim();
+		if ( rqStart === -1 && openRegex.test( line ) ) {
+			rqStart = i;
+		}
+		if ( rqStart !== -1 && line === '}}' ) {
+			rqEnd = i;
+			break;
+		}
+	}
+	if ( rqStart !== -1 && rqEnd !== -1 ) {
+		return { start: rqStart, end: rqEnd };
+	}
+	return null;
+};
+
+// Check if any of templateNames occurs within sectionName inside content
+const isAnyTemplateInSection = function ( content, templateNames, sectionName, namespaceAliases, topMarker ) {
+	const lines = String( content || '' ).split( '\n' );
+	const bounds = computeSectionBounds( lines, sectionName, topMarker );
+	if ( bounds.start === -1 ) {
+		return false;
+	}
+	const sectionText = lines.slice( bounds.start, bounds.end ).join( '\n' );
+	const re = buildTemplateRegexFor( templateNames || [], namespaceAliases );
+	return re.test( sectionText );
+};
+
+// Filter those templates that are not present in the given section
+const filterNewTemplates = function ( content, sectionName, list, aliasesMap, namespaceAliases, topMarker ) {
+	const result = [];
+	( list || [] ).forEach( ( t ) => {
+		const code = t.code || ( '{{' + t.name + '}}' );
+		const name = extractTemplateName( code );
+		const aliases = ( aliasesMap && aliasesMap[ name ] ) || [ name ];
+		if ( !isAnyTemplateInSection( content, aliases, sectionName, namespaceAliases, topMarker ) ) {
+			result.push( code );
+		}
+	} );
+	return result;
+};
+
 // High-level helper: check whether any of the names (or a single name) exists in content
 // Performs a quick whole-text regex scan and a top-section scan for robustness
 const containsTemplate = function ( params ) {
@@ -222,5 +274,5 @@ const findTemplatesByNames = function ( content, names, namespaceAliases ) {
 	return out;
 };
 
-export { sanitizeSectionName, computeSectionBounds, escapeTplName, buildTemplateRegexFor, extractTemplateName, buildOpenRegexFor, findBlockRange, isAnyTemplateInSection, filterNewTemplates, containsTemplate, normalizeTemplateName, buildOptionalNamespacePart, stripNamespacePrefix, addNamespacePrefix, findTemplatesByNames, stripAnyTemplateNs, normalizeTemplateTitle, WS_NBSP_CLASS, ESCAPE_REGEX };
+export { sanitizeSectionName, computeSectionBounds, escapeTplName, buildTemplateRegexFor, extractTemplateName, buildOpenRegexFor, findBlockRange, isAnyTemplateInSection, filterNewTemplates, containsTemplate, normalizeTemplateName, buildOptionalNamespacePart, stripNamespacePrefix, addNamespacePrefix, findTemplatesByNames, stripAnyTemplateNs, normalizeTemplateTitle, WS_NBSP_CLASS, ESCAPE_REGEX, normalizeBlockText, isShellOpenLine, computeTopInsertIndex };
 // </nowiki>

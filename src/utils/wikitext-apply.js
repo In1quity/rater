@@ -2,7 +2,7 @@
 import { parseTemplates } from '@utils/parseTemplates.js';
 import logger from '@services/logger.js';
 import { getShellTemplateAliasesSync } from '@services/templateShell.js';
-import { buildOpenRegexFor } from '@utils/wikitext.js';
+import { buildOpenRegexFor, findBlockRange, normalizeBlockText, isShellOpenLine, computeTopInsertIndex, stripAnyTemplateNs, normalizeTemplateName } from '@utils/wikitext.js';
 import config from '@constants/config.js';
 
 const log = logger.get( 'wikitext-apply' );
@@ -10,7 +10,9 @@ const log = logger.get( 'wikitext-apply' );
 const findShellRange = function ( lines, candidateNames ) {
 	const nsAliases = Array.isArray( config.templateNamespaceAliases ) ? config.templateNamespaceAliases : [];
 	const tryFind = function ( names ) {
-		const openRe = buildOpenRegexFor( names, nsAliases );
+		const list = ( Array.isArray( names ) ? names : [ names ] )
+			.map( ( n ) => normalizeTemplateName( stripAnyTemplateNs( n ) ) );
+		const openRe = buildOpenRegexFor( list, nsAliases );
 		let start = -1;
 		let end = -1;
 		for ( let i = 0; i < lines.length; i++ ) {
@@ -39,13 +41,6 @@ const findShellRange = function ( lines, candidateNames ) {
 		}
 	}
 	return null;
-};
-
-const normalizeBlock = function ( text ) {
-	return String( text || '' )
-		.replace( /\s+$/gm, '' )
-		.replace( /\n{3,}/g, '\n\n' )
-		.trim();
 };
 
 // Locale-agnostic top insert: skip empty lines and any non-banner, non-shell template blocks
@@ -99,41 +94,78 @@ const applyBannerInsert = function ( talkWikitext, bannersWikitext, existingBann
 	const lines = base.split( '\n' );
 	const shellRange = findShellRange( lines, existingBannerNames );
 
-	// When there is a shell, replace inner templates between open and closing '}}'
+	// When there is a shell
 	if ( shellRange ) {
 		try {
 			log.info( '[apply] shell block found: %d..%d', shellRange.start, shellRange.end );
 			log.debug( '[apply] shell open context: "%s"', ( lines[ shellRange.start ] || '' ).trim() );
 		} catch ( _e ) {}
-		// Build desired inner block from UI bannersWikitext (remove open and closing)
-		const desiredInner = normalizeBlock( bannersBlock.replace( /^\{\{[^|}]+\|?/, '' ).replace( /}}\s*$/, '' ) );
-		const currentInner = normalizeBlock( lines.slice( shellRange.start + 1, shellRange.end ).join( '\n' ) );
-		if ( desiredInner === currentInner ) {
+
+		// Decide whether desired block is a shell or plain banners list
+		const nsAliasesLocal = Array.isArray( config.templateNamespaceAliases ) ? config.templateNamespaceAliases : [];
+		const desiredStartsWithShell = isShellOpenLine( ( bannersBlock.split( '\n' )[ 0 ] || '' ), nsAliasesLocal, getShellTemplateAliasesSync() );
+
+		if ( desiredStartsWithShell ) {
+			// Replace inner templates between open and closing '}}'
+			const desiredInner = normalizeBlockText( bannersBlock.replace( /^\{\{[^|}]+\|?/, '' ).replace( /}}\s*$/, '' ) );
+			const currentInner = normalizeBlockText( lines.slice( shellRange.start + 1, shellRange.end ).join( '\n' ) );
+			if ( desiredInner === currentInner ) {
+				try {
+					log.info( '[apply] inner unchanged → no-op' );
+				} catch ( _e ) {}
+				return base;
+			}
+			// If desired inner is empty while current has content, do not remove implicitly
+			if ( !desiredInner && currentInner ) {
+				try {
+					log.info( '[apply] desired inner empty; preserving existing content → no-op' );
+				} catch ( _e ) {}
+				return base;
+			}
+			const innerLines = desiredInner ? desiredInner.split( '\n' ).filter( ( s ) => String( s || '' ).trim() ) : [];
+			const deleteCount = shellRange.end - shellRange.start - 1;
+			Array.prototype.splice.apply( lines, [ shellRange.start + 1, deleteCount ].concat( innerLines ) );
 			try {
-				log.info( '[apply] inner unchanged → no-op' );
+				log.info( '[apply] replaced inner with %d line(s)', innerLines.length );
 			} catch ( _e ) {}
-			return base;
+			return lines.join( '\n' );
 		}
-		// If desired inner is empty while current has content, do not remove implicitly
-		if ( !desiredInner && currentInner ) {
-			try {
-				log.info( '[apply] desired inner empty; preserving existing content → no-op' );
-			} catch ( _e ) {}
-			return base;
-		}
-		const innerLines = desiredInner ? desiredInner.split( '\n' ).filter( ( s ) => String( s || '' ).trim() ) : [];
-		const deleteCount = shellRange.end - shellRange.start - 1;
-		Array.prototype.splice.apply( lines, [ shellRange.start + 1, deleteCount ].concat( innerLines ) );
+
+		// Desired block is not a shell → remove shell entirely and insert banners as-is
+		const replacementLines = bannersBlock ? bannersBlock.split( '\n' ) : [];
+		const deleteCountWhole = shellRange.end - shellRange.start + 1;
+		Array.prototype.splice.apply( lines, [ shellRange.start, deleteCountWhole ].concat( replacementLines ) );
 		try {
-			log.info( '[apply] replaced inner with %d line(s)', innerLines.length );
+			log.info( '[apply] removed shell and inserted %d line(s)', replacementLines.length );
 		} catch ( _e ) {}
 		return lines.join( '\n' );
 	}
 
-	// No shell present: try to insert at first existing banner position
+	// No shell present: optionally remove existing top-level banners and insert
 	const nsAliases = Array.isArray( config.templateNamespaceAliases ) ? config.templateNamespaceAliases : [];
-	const existing = Array.isArray( existingBannerNames ) ? existingBannerNames.slice() : [];
-	const existingRe = existing.length ? buildOpenRegexFor( existing, nsAliases ) : null;
+	let existing = Array.isArray( existingBannerNames ) ? existingBannerNames.slice() : [];
+	let existingRe = existing.length ? buildOpenRegexFor( existing, nsAliases ) : null;
+	// Determine if desired block is a shell by extracting the template name and matching aliases
+	const desiredIsShell = isShellOpenLine( ( bannersBlock.split( '\n' )[ 0 ] || '' ), nsAliases, getShellTemplateAliasesSync() );
+	if ( desiredIsShell && existingRe ) {
+		const openRe = buildOpenRegexFor( existing, nsAliases );
+		let idx = 0;
+		while ( idx < lines.length ) {
+			const range = findBlockRange( lines, idx, lines.length, openRe );
+			if ( !range ) {
+				break;
+			}
+			const deleteCount = ( range.end - range.start ) + 1;
+			lines.splice( range.start, deleteCount );
+			idx = range.start; // continue after removed block
+		}
+		try {
+			log.info( '[apply] removed existing top-level banners before shell insert' );
+		} catch ( _e ) {}
+		// After removal, avoid using existing banner position for insertion
+		existing = [];
+		existingRe = null;
+	}
 	let at = -1;
 	if ( existingRe ) {
 		for ( let i = 0; i < lines.length; i++ ) {
@@ -145,7 +177,7 @@ const applyBannerInsert = function ( talkWikitext, bannersWikitext, existingBann
 		}
 	}
 	if ( at === -1 ) {
-		at = findTopInsertIndex( lines, existing );
+		at = computeTopInsertIndex( lines, existing, getShellTemplateAliasesSync(), nsAliases );
 		try {
 			log.info( '[apply] no shell found: insert at top index %d', at );
 		} catch ( _e ) {}
