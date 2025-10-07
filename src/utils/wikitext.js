@@ -5,7 +5,7 @@ import { normalizeString } from './util.js';
 // Utilities for line-based wikitext operations aligned with maintenance-core
 
 // Precompiled/common regexes
-const WS_NBSP_CLASS = '[\s\u00A0\u2000-\u200A\u202F\u205F\u3000]+'; // whitespace incl. various NBSPs
+const WS_NBSP_CLASS = '[\\s\\u00A0\\u2000-\\u200A\\u202F\\u205F\\u3000]+'; // whitespace incl. various NBSPs (double-escaped for new RegExp)
 const ESCAPE_REGEX = /[.*+?^${}()|[\]\\]/g;
 
 // Collapse spaces and strip simple warning symbol sequences from headings

@@ -549,16 +549,42 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 			} )
 				.then( ( result ) => {
 					if ( !result || !result.compare || !result.compare[ '*' ] ) {
-						// Show a friendly empty-diff message from MediaWiki core instead of error
-						const msg = ( typeof mw !== 'undefined' && mw.msg ) ? mw.msg( 'diff-empty' ) : 'No difference';
-						const $empty = $( '<div>' ).addClass( 'diff-empty' ).text( msg );
-						this.parsedContentWidget.setLabel( $empty );
-						this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
-						this.actions.setMode( 'diff' );
-						this.contentArea.setItem( this.parsedContentLayout );
-						this.topBar.setDisabled( true );
-						this.updateSize();
-						return;
+						// Ensure the core MediaWiki message is available before showing it
+						const loadDiffEmptyMessage = () => {
+							// If already loaded, resolve immediately
+							if ( typeof mw !== 'undefined' && mw.message && mw.message( 'diff-empty' ).exists() ) {
+								return $.Deferred().resolve( mw.msg( 'diff-empty' ) ).promise();
+							}
+							// Prefer mw.Api().loadMessages if available
+							if ( typeof mw !== 'undefined' && mw.Api && typeof ( new mw.Api() ).loadMessages === 'function' ) {
+								return ( new mw.Api() ).loadMessages( [ 'diff-empty' ] ).then( () => mw.msg( 'diff-empty' ) );
+							}
+							// Fallback: fetch via allmessages
+							if ( typeof mw !== 'undefined' && mw.Api ) {
+								const api = new mw.Api();
+								return api.get( {
+									action: 'query',
+									meta: 'allmessages',
+									ammessages: 'diff-empty',
+									amlang: mw.config && mw.config.get ? mw.config.get( 'wgUserLanguage' ) : 'en'
+								} ).then( ( data ) => {
+									const m = data && data.query && data.query.allmessages && data.query.allmessages[ 0 ] && data.query.allmessages[ 0 ][ '*' ];
+									return m || 'No difference';
+								} );
+							}
+							// Last resort
+							return $.Deferred().resolve( 'No difference' ).promise();
+						};
+
+						return loadDiffEmptyMessage().then( ( msg ) => {
+							const $empty = $( '<div>' ).addClass( 'diff-empty' ).text( msg );
+							this.parsedContentWidget.setLabel( $empty );
+							this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
+							this.actions.setMode( 'diff' );
+							this.contentArea.setItem( this.parsedContentLayout );
+							this.topBar.setDisabled( true );
+							this.updateSize();
+						} );
 					}
 					const $diff = $( '<table>' ).addClass( 'diff' ).css( 'width', '100%' ).append(
 						$( '<tr>' ).append(

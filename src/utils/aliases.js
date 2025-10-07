@@ -1,7 +1,7 @@
 // <nowiki>
 import API from '@services/api.js';
 import config from '@constants/config.js';
-import { addNamespacePrefix, stripNamespacePrefix } from '@utils/wikitext.js';
+import { addNamespacePrefix, stripAnyTemplateNs } from '@utils/wikitext.js';
 
 // Simple in-memory cache: name(lowercased) -> aliases[]
 const ALIASES_CACHE = Object.create( null );
@@ -27,7 +27,7 @@ const getTemplateAliases = function ( templateName ) {
 	return API.get( { action: 'query', format: 'json', formatversion: 2, redirects: 1, titles: titled } )
 		.then( ( data ) => {
 			const page = ( data && data.query && data.query.pages && data.query.pages[ 0 ] ) || {};
-			let canonical = stripNamespacePrefix( page.title || base, nsAliases );
+			let canonical = stripAnyTemplateNs( page.title || base );
 			if ( !canonical ) {
 				canonical = base;
 			}
@@ -36,7 +36,7 @@ const getTemplateAliases = function ( templateName ) {
 			return API.get( { action: 'query', format: 'json', formatversion: 2, prop: 'redirects', titles: titledCanonical } )
 				.then( ( d2 ) => {
 					const p = ( d2 && d2.query && d2.query.pages && d2.query.pages[ 0 ] ) || {};
-					const redirects = ( p.redirects || [] ).map( ( r ) => stripNamespacePrefix( r.title || '', nsAliases ) ).filter( Boolean );
+					const redirects = ( p.redirects || [] ).map( ( r ) => stripAnyTemplateNs( r.title || '' ) ).filter( Boolean );
 					const out = [ canonical ].concat( redirects );
 					ALIASES_CACHE[ key ] = out;
 					return out;

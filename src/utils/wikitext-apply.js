@@ -2,7 +2,7 @@
 import { parseTemplates } from '@utils/parseTemplates.js';
 import logger from '@services/logger.js';
 import { getShellTemplateAliasesSync } from '@services/templateShell.js';
-import { buildOpenRegexFor, findBlockRange, normalizeBlockText, isShellOpenLine, computeTopInsertIndex, stripAnyTemplateNs, normalizeTemplateName } from '@utils/wikitext.js';
+import { buildOpenRegexFor, buildTemplateRegexFor, findBlockRange, normalizeBlockText, isShellOpenLine, computeTopInsertIndex, stripAnyTemplateNs, normalizeTemplateName } from '@utils/wikitext.js';
 import config from '@constants/config.js';
 
 const log = logger.get( 'wikitext-apply' );
@@ -13,15 +13,23 @@ const findShellRange = function ( lines, candidateNames ) {
 		const list = ( Array.isArray( names ) ? names : [ names ] )
 			.map( ( n ) => normalizeTemplateName( stripAnyTemplateNs( n ) ) );
 		const openRe = buildOpenRegexFor( list, nsAliases );
+		log.debug( '[findShellRange] trying names: %o', list );
+		log.debug( '[findShellRange] regex: %s', openRe );
 		let start = -1;
 		let end = -1;
 		for ( let i = 0; i < lines.length; i++ ) {
 			const t = ( lines[ i ] || '' ).trim();
+			if ( openRe ) {
+				const testResult = openRe.test( t );
+				log.debug( '[findShellRange] line %d: "%s" → match=%s', i, t, testResult );
+			}
 			if ( start === -1 && openRe && openRe.test( t ) ) {
+				log.debug( '[findShellRange] found shell open at line %d: %s', i, t );
 				start = i;
 				continue;
 			}
 			if ( start !== -1 && t === '}}' ) {
+				log.debug( '[findShellRange] found shell close at line %d', i );
 				end = i;
 				break;
 			}
@@ -29,17 +37,23 @@ const findShellRange = function ( lines, candidateNames ) {
 		return ( start !== -1 && end !== -1 ) ? { start: start, end: end } : null;
 	};
 	// First by known aliases (from service)
-	const byAliases = tryFind( getShellTemplateAliasesSync() );
+	const shellAliases = getShellTemplateAliasesSync();
+	log.debug( '[findShellRange] shell aliases from service: %o', shellAliases );
+	const byAliases = tryFind( shellAliases );
 	if ( byAliases ) {
+		log.debug( '[findShellRange] found by aliases: %o', byAliases );
 		return byAliases;
 	}
 	// Then by candidates from existing banners (UI)
 	if ( Array.isArray( candidateNames ) && candidateNames.length ) {
+		log.debug( '[findShellRange] trying candidates: %o', candidateNames );
 		const byCandidates = tryFind( candidateNames );
 		if ( byCandidates ) {
+			log.debug( '[findShellRange] found by candidates: %o', byCandidates );
 			return byCandidates;
 		}
 	}
+	log.debug( '[findShellRange] not found' );
 	return null;
 };
 
@@ -92,6 +106,10 @@ const applyBannerInsert = function ( talkWikitext, bannersWikitext, existingBann
 
 	// Split to lines for maintenance-core like operations
 	const lines = base.split( '\n' );
+	try {
+		log.debug( '[apply] lines count: %d', lines.length );
+		log.debug( '[apply] first 10 lines: %o', lines.slice( 0, 10 ) );
+	} catch ( _e ) {}
 	const shellRange = findShellRange( lines, existingBannerNames );
 
 	// When there is a shell
@@ -147,25 +165,36 @@ const applyBannerInsert = function ( talkWikitext, bannersWikitext, existingBann
 	let existingRe = existing.length ? buildOpenRegexFor( existing, nsAliases ) : null;
 	// Determine if desired block is a shell by extracting the template name and matching aliases
 	const desiredIsShell = isShellOpenLine( ( bannersBlock.split( '\n' )[ 0 ] || '' ), nsAliases, getShellTemplateAliasesSync() );
-	if ( desiredIsShell && existingRe ) {
-		const openRe = buildOpenRegexFor( existing, nsAliases );
-		let idx = 0;
-		while ( idx < lines.length ) {
-			const range = findBlockRange( lines, idx, lines.length, openRe );
-			if ( !range ) {
-				break;
-			}
-			const deleteCount = ( range.end - range.start ) + 1;
-			lines.splice( range.start, deleteCount );
-			idx = range.start; // continue after removed block
-		}
+
+	// Always remove existing banners if we have them listed
+	if ( existing.length > 0 ) {
+		// Use buildTemplateRegexFor to match both single-line and multi-line templates
+		const fullRe = buildTemplateRegexFor( existing, nsAliases );
+		const joinedText = lines.join( '\n' );
+		// Replace all matching templates with empty string
+		const cleaned = joinedText.replace( fullRe, '' );
+		// Rebuild lines array from cleaned text, filtering out empty lines
+		const newLines = cleaned.split( '\n' ).filter( ( l ) => String( l || '' ).trim() !== '' );
+		// Replace lines array content
+		lines.length = 0;
+		Array.prototype.push.apply( lines, newLines );
 		try {
-			log.info( '[apply] removed existing top-level banners before shell insert' );
+			log.info( '[apply] removed %d existing banners before insert', existing.length );
 		} catch ( _e ) {}
-		// After removal, avoid using existing banner position for insertion
+		// After removal, reset existing tracking
 		existing = [];
 		existingRe = null;
 	}
+
+	// If we're inserting a shell and removed banners, insert at top
+	if ( desiredIsShell && lines.length === 0 ) {
+		Array.prototype.splice.apply( lines, [ 0, 0 ].concat( [ bannersBlock ] ) );
+		try {
+			log.info( '[apply] inserted shell block at top after removal' );
+		} catch ( _e ) {}
+		return lines.join( '\n' );
+	}
+
 	let at = -1;
 	if ( existingRe ) {
 		for ( let i = 0; i < lines.length; i++ ) {
@@ -179,7 +208,7 @@ const applyBannerInsert = function ( talkWikitext, bannersWikitext, existingBann
 	if ( at === -1 ) {
 		at = computeTopInsertIndex( lines, existing, getShellTemplateAliasesSync(), nsAliases );
 		try {
-			log.info( '[apply] no shell found: insert at top index %d', at );
+			log.info( '[apply] insert at top index %d', at );
 		} catch ( _e ) {}
 	} else {
 		try {
