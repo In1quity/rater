@@ -88,7 +88,8 @@ const buildOpenRegexFor = function ( names, namespaceAliases ) {
 	const alt = list.map( escapeTplName ).join( '|' );
 	const ns = Array.isArray( namespaceAliases ) ? namespaceAliases : [];
 	const nsPart = ns.length ? '(?:' + ns.map( ( n ) => String( n ).replace( ESCAPE_REGEX, '\\$&' ) ).join( '|' ) + ':)?' : '';
-	return new RegExp( '^\\{\\{\\s*' + nsPart + '(?:' + alt + ')(?=\\s*(?:\\|\\}\\}|$))', 'i' );
+	// NOTE: lookahead allows either '|' (params continue), or '}}' (single-line), or end-of-line
+	return new RegExp( '^\\{\\{\\s*' + nsPart + '(?:' + alt + ')(?=\\s*(?:\\||}}|$))', 'i' );
 };
 
 // Find a block range delimited by open (matched by openRegex) and a closing '}}'
