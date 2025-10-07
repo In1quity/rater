@@ -1,6 +1,9 @@
 import { getTemplateDataDetails } from '@services/templateData.js';
 import * as cache from '@services/cache.js';
+import logger from '@services/logger.js';
 // <nowiki>
+
+const log = logger.get( 'templateParams' );
 
 const loadParamDataAndSuggestions = function ( template ) {
 	const done = $.Deferred();
@@ -75,6 +78,40 @@ const loadParamDataAndSuggestions = function ( template ) {
 		template.paramAliases = details.paramAliases || {};
 		template.classParamName = details.classParamName || 'class';
 		template.importanceParamName = details.importanceParamName || 'importance';
+
+		// Log TemplateData info
+		try {
+			const tplName = template.name || ( template.getTitle && template.getTitle().getMainText() ) || 'unknown';
+			log.debug( 'Loaded TemplateData for "%s":', tplName );
+			log.debug( '  → notemplatedata: %s', details.notemplatedata ? 'true' : 'false' );
+			log.debug( '  → classParamName: %s', template.classParamName );
+			log.debug( '  → importanceParamName: %s', template.importanceParamName );
+
+			const paramCount = Object.keys( template.paramData ).length;
+			log.debug( '  → %d parameters in TemplateData:', paramCount );
+
+			Object.keys( template.paramData ).slice( 0, 10 ).forEach( ( paramName, idx ) => {
+				const pd = template.paramData[ paramName ];
+				const label = pd && pd.label && ( pd.label.en || pd.label );
+				const required = pd && pd.required ? ' [required]' : '';
+				const suggested = pd && pd.suggested ? ' [suggested]' : '';
+				const aliases = pd && pd.aliases && pd.aliases.length > 0 ?
+					` (aliases: ${ pd.aliases.join( ', ' ) })` : '';
+				log.debug( '    %d. %s: %s%s%s%s',
+					idx + 1,
+					paramName,
+					label || '(no label)',
+					required,
+					suggested,
+					aliases
+				);
+			} );
+
+			if ( paramCount > 10 ) {
+				log.debug( '    ... and %d more parameters', paramCount - 10 );
+			}
+		} catch ( _e ) { /* ignore */ }
+
 		cache.write( prefixedText + '-params', details, 1 );
 		return true;
 	} ).then( done.resolve, done.reject );

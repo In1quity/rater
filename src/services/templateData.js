@@ -1,7 +1,10 @@
 import * as cache from '@services/cache.js';
 import API from '@services/api.js';
 import config from '@constants/config.js';
+import logger from '@services/logger.js';
 // <nowiki>
+
+const log = logger.get( 'templateData' );
 
 // Fetch and cache TemplateData for a template title (prefixed or not)
 const getTemplateData = function ( prefixedTitle ) {
@@ -19,6 +22,22 @@ const getTemplateData = function ( prefixedTitle ) {
 	} ).then( ( result ) => {
 		const id = result && $.map( result.pages, ( _value, k ) => k );
 		const page = result && result.pages && result.pages[ id ];
+
+		// Log API response
+		try {
+			log.debug( 'TemplateData API response for "%s":', title );
+			if ( !page ) {
+				log.debug( '  → no page data returned' );
+			} else if ( page.notemplatedata ) {
+				log.debug( '  → notemplatedata: true (no TemplateData extension data)' );
+			} else if ( !page.params ) {
+				log.debug( '  → no params in response' );
+			} else {
+				const paramCount = Object.keys( page.params ).length;
+				log.debug( '  → received %d parameters from API', paramCount );
+			}
+		} catch ( _e ) { /* ignore */ }
+
 		if ( !page || page.notemplatedata || !page.params ) {
 			return $.Deferred().resolve( { notemplatedata: true, params: config.defaultParameterData, paramOrder: [], paramAliases: {} } );
 		}
@@ -93,11 +112,11 @@ const getTemplateDataDetails = function ( prefixedTitle ) {
 		let importanceName = findByNameOrAlias( 'importance' );
 		if ( !className ) {
 			const keys = Object.keys( result.paramData || {} );
-			className = keys.find( ( k ) => /class|класс|уров/i.test( String( k ).toLowerCase() ) );
+			className = keys.find( ( k ) => /class/i.test( String( k ).toLowerCase() ) );
 		}
 		if ( !importanceName ) {
 			const keys2 = Object.keys( result.paramData || {} );
-			importanceName = keys2.find( ( k ) => /importance|важност/i.test( String( k ).toLowerCase() ) );
+			importanceName = keys2.find( ( k ) => /importance/i.test( String( k ).toLowerCase() ) );
 		}
 		result.classParamName = className || 'class';
 		result.importanceParamName = importanceName || 'importance';

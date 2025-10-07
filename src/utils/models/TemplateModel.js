@@ -31,5 +31,26 @@ Template.prototype.getTitle = function () {
 	return mw.Title.newFromText( prefixed );
 };
 
+// Read TemplateData property for a specific parameter name
+// Example: getDataForParam('suggestedvalues', 'importance')
+Template.prototype.getDataForParam = function ( propertyKey, paramName ) {
+	if ( !this || !this.paramData ) {
+		return null;
+	}
+	const key = String( propertyKey || '' );
+	const name = String( paramName || '' );
+	const data = this.paramData[ name ];
+	if ( !data ) {
+		return null;
+	}
+	// Try common casings used across TemplateData payloads
+	return data[ key ] ||
+		data[ key.toLowerCase() ] ||
+		data[ key.toUpperCase() ] ||
+		data[ key.charAt( 0 ).toLowerCase() + key.slice( 1 ) ] ||
+		data[ key.charAt( 0 ).toUpperCase() + key.slice( 1 ) ] ||
+		null;
+};
+
 export { Template };
 // </nowiki>

@@ -45,16 +45,17 @@ const scanTemplates = function ( params ) {
 		notMatched.slice( 0, 3 ).forEach( ( nm, i ) => log.debug( '  notMatched %d: %s', i + 1, nm ) );
 	} catch ( _e ) { /* ignore */ }
 
-	// Parse all templates (including nested), then filter by target names
+	// Parse all templates recursively to find nested ones
 	const targetSet = new Set( ( Array.isArray( names ) ? names : [ names ] )
 		.filter( Boolean )
 		.map( ( n ) => normalizeTemplateName( stripNamespacePrefix( n, namespaceAliases ) ) ) );
 	const parsed = parseTemplates( text, true ) || [];
 	try {
-		log.debug( 'parseTemplates returned %d templates (including nested)', parsed.length );
+		log.debug( 'parseTemplates returned %d templates (recursive)', parsed.length );
 		parsed.slice( 0, 10 ).forEach( ( tpl, i ) => {
 			const nm = normalizeTemplateName( stripNamespacePrefix( tpl.name, namespaceAliases ) );
-			log.debug( '  parsed %d: %s', i + 1, nm );
+			const paramCount = ( tpl.parameters || [] ).length;
+			log.debug( '  parsed %d: %s (%d params)', i + 1, nm, paramCount );
 		} );
 	} catch ( _e ) { /* ignore */ }
 	const results = [];
@@ -164,12 +165,27 @@ const findBannerTemplatesOnTalk = function ( params ) {
 
 	// Step 2: map to Template instances with normalized name for downstream logic
 	const templates = found.map( ( f ) => {
-		const t = new Template( f.wikitext );
+		const arr = parseTemplates( f.wikitext, false ) || [];
+		const t = arr[ 0 ] || new Template( f.wikitext );
 		t.setName( normalizeTemplateName( stripNamespacePrefix( f.name, namespaceAliases ) ) );
 		return t;
 	} );
 	log.debug( 'Found %d templates from found templates:', templates.length );
-	templates.forEach( ( template, i ) => log.debug( '  %d. %s', i + 1, template.name ) );
+	templates.forEach( ( template, i ) => {
+		log.debug( '  %d. %s', i + 1, template.name );
+		// Log parsed parameters from wikitext
+		if ( template.parameters && template.parameters.length > 0 ) {
+			log.debug( '    → parsed %d parameters:', template.parameters.length );
+			template.parameters.forEach( ( param, idx ) => {
+				const displayValue = String( param.value || '' ).length > 50 ?
+					String( param.value || '' ).slice( 0, 47 ) + '...' :
+					param.value;
+				log.debug( '      %d. |%s=%s', idx + 1, param.name, displayValue );
+			} );
+		} else {
+			log.debug( '    → no parameters parsed' );
+		}
+	} );
 
 	// Step 3: resolve redirects/aliases, wrap into native Promise for await compatibility
 	return new Promise( ( resolve ) => {
