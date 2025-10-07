@@ -721,6 +721,12 @@ MainWindow.prototype.onClearAll = function () {
 
 MainWindow.prototype.transformTalkWikitext = function ( talkWikitext ) {
 	const bannersWikitext = this.bannerList.makeWikitext();
+	try {
+		log.info( '[transform] talkLen=%d, bannersLen=%d, items=%d', String( talkWikitext || '' ).length, String( bannersWikitext || '' ).length, this.bannerList.items.length );
+		const hasShell = this.bannerList.items.some( ( b ) => b.isShellTemplate );
+		log.info( '[transform] hasShell=%s', hasShell );
+		log.debug( '[transform] banners sample: %s', String( bannersWikitext || '' ).slice( 0, 200 ) );
+	} catch ( _e ) {}
 	return applyBannerInsert( talkWikitext, bannersWikitext, this.existingBannerNames );
 };
 

@@ -501,7 +501,10 @@ BannerWidget.prototype.bypassRedirect = function () {
 };
 
 BannerWidget.prototype.makeWikitext = function () {
-	if ( !this.changed && this.wikitext ) {
+	// For non-shell banners, if nothing changed and original wikitext is available, reuse it.
+	// For shell banner we must always render from current state so that temporary param1 (inner content)
+	// added by BannerListWidget.makeWikitext is respected.
+	if ( !this.isShellTemplate && !this.changed && this.wikitext ) {
 		return this.wikitext;
 	}
 	const pipe = this.pipeStyle;
