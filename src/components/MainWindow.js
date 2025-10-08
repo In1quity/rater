@@ -615,7 +615,7 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 							const emptyDiv = document.createElement( 'div' );
 							emptyDiv.className = 'diff-empty';
 							emptyDiv.textContent = msg;
-							this.parsedContentWidget.setLabel( $( emptyDiv ) );
+							this.parsedContentWidget.setLabel( new OO.ui.HtmlSnippet( emptyDiv.outerHTML ) );
 							this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
 							this.actions.setMode( 'diff' );
 							this.contentArea.setItem( this.parsedContentLayout );
@@ -659,7 +659,7 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 					tfoot.appendChild( footerRow );
 					diffTable.appendChild( tfoot );
 
-					this.parsedContentWidget.setLabel( $( diffTable ) );
+					this.parsedContentWidget.setLabel( new OO.ui.HtmlSnippet( diffTable.outerHTML ) );
 					this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
 					this.actions.setMode( 'diff' );
 					this.contentArea.setItem( this.parsedContentLayout );
