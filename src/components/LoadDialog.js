@@ -1,41 +1,15 @@
 import { makeErrorMsg } from '@services/api.js';
 import i18n from '@services/i18n.js';
+import { ensureCodex, mountCodexApp } from '@services/codex.js';
+import logger from '@services/logger.js';
 // <nowiki>
 
-/* var incrementProgressByInterval = function() {
-	var incrementIntervalDelay = 100;
-	var incrementIntervalAmount = 0.1;
-	var incrementIntervalMaxval = 98;
-	return window.setInterval(
-		incrementProgress,
-		incrementIntervalDelay,
-		incrementIntervalAmount,
-		incrementIntervalMaxval
-	);
-}; */
+// Codex-based LoadDialog replacement
 
-const LoadDialog = function LoadDialog( config ) {
-	LoadDialog.super.call( this, config );
-};
-OO.inheritClass( LoadDialog, OO.ui.Dialog );
-
-LoadDialog.static.name = 'loadDialog';
-LoadDialog.static.title = String( i18n.t( 'loading-title' ) );
-
-// Customize the initialize() function: This is where to add content to the dialog body and set up event handlers.
-LoadDialog.prototype.initialize = function () {
-	// Call the parent method.
-	LoadDialog.super.prototype.initialize.call( this );
-	// Create a layout
-	this.content = new OO.ui.PanelLayout( {
-		padded: true,
-		expanded: false
-	} );
-	// Create content
-	this.progressBar = new OO.ui.ProgressBarWidget( {
-		progress: 1
-	} );
-	this.setuptasks = [
+export const openLoadDialogCodex = function ( options ) {
+	const log = logger.get( 'load' );
+	options = options || {};
+	const tasks = [
 		i18n.t( 'loading-prefs' ),
 		i18n.t( 'loading-banners' ),
 		i18n.t( 'loading-talk' ),
@@ -43,129 +17,99 @@ LoadDialog.prototype.initialize = function () {
 		i18n.t( 'loading-params' ),
 		i18n.t( 'loading-subject' ),
 		i18n.t( 'loading-ores' )
-	].map( ( label, index ) => {
-		const widget = new OO.ui.LabelWidget( { label: label } );
-		widget.$element.addClass( 'rater-loadDialog-taskLabel' );
-		if ( index === 6 ) {
-			widget.toggle();
-		}
-		return widget;
-	} );
-	this.closeButton = new OO.ui.ButtonWidget( {
-		label: i18n.t( 'button-close' )
-	} ).toggle();
-	this.setupPromises = [];
-
-	// Append content to layout
-	const initLabel = new OO.ui.LabelWidget( {
-		label: i18n.t( 'loading-init' )
-	} );
-	initLabel.$element.addClass( 'rater-loadDialog-initLabel' );
-	initLabel.$element[ 0 ].innerHTML = '<strong>' + i18n.t( 'loading-init' ) + '</strong>';
-	this.content.$element.append(
-		this.progressBar.$element,
-		initLabel.$element,
-		...this.setuptasks.map( ( widget ) => widget.$element ),
-		this.closeButton.$element
-	);
-
-	// Append layout to dialog
-	this.$body.append( this.content.$element );
-
-	// Connect events to handlers
-	this.closeButton.connect( this, { click: 'onCloseButtonClick' } );
-};
-
-LoadDialog.prototype.onCloseButtonClick = function () {
-	// Close this dialog, without passing any data
-	this.close();
-};
-
-// Override the getBodyHeight() method to specify a custom height (or don't to use the automatically generated height).
-LoadDialog.prototype.getBodyHeight = function () {
-	return this.content.$element.outerHeight( true );
-};
-
-LoadDialog.prototype.incrementProgress = function ( amount, maximum ) {
-	const priorProgress = this.progressBar.getProgress();
-	const incrementedProgress = Math.min( maximum || 100, priorProgress + amount );
-	this.progressBar.setProgress( incrementedProgress );
-};
-
-LoadDialog.prototype.addTaskPromiseHandlers = function ( taskPromises ) {
-	const onTaskDone = ( index ) => {
-		// Add "Done!" to label
-		const widget = this.setuptasks[ index ];
-		widget.setLabel( widget.getLabel() + ' Done!' );
-		// Increment status bar. Show a smooth transition by
-		// using small steps over a short duration.
-		const totalIncrement = 100 / this.setuptasks.length; // percent
-		const totalTime = 400; // milliseconds
-		const totalSteps = 10;
-		const incrementPerStep = totalIncrement / totalSteps;
-
-		for ( let step = 0; step < totalSteps; step++ ) {
-			window.setTimeout(
-				this.incrementProgress.bind( this ),
-				totalTime * step / totalSteps,
-				incrementPerStep
-			);
-		}
-	};
-	const onTaskError = ( index, code, info ) => {
-		const widget = this.setuptasks[ index ];
-		widget.setLabel(
-			widget.getLabel() + ' Failed. ' + makeErrorMsg( code, info )
-		);
-		this.closeButton.toggle( true );
-		this.updateSize();
-	};
-	taskPromises.forEach( ( promise, index ) => {
-		promise.then(
-			() => onTaskDone( index ),
-			( code, info ) => onTaskError( index, code, info )
-		);
-	} );
-};
-
-// Use getSetupProcess() to set up the window with data passed to it at the time
-// of opening
-LoadDialog.prototype.getSetupProcess = function ( data ) {
-	data = data || {};
-	return LoadDialog.super.prototype.getSetupProcess.call( this, data )
-		.next( () => {
-			const showOresTask = !!data.ores;
-			this.setuptasks[ 6 ].toggle( showOresTask );
-			const taskPromises = data.ores ? data.promises : data.promises.slice( 0, -1 );
-			data.isOpened.then( () => this.addTaskPromiseHandlers( taskPromises ) );
-		}, this );
-};
-
-// Prevent window from closing too quickly, using getHoldProcess()
-LoadDialog.prototype.getHoldProcess = function ( data ) {
-	data = data || {};
-	if ( data.success ) {
-		// Wait a bit before processing the close, which happens automatically
-		return LoadDialog.super.prototype.getHoldProcess.call( this, data )
-			.next( 800 );
-	}
-	// No need to wait if closed manually
-	return LoadDialog.super.prototype.getHoldProcess.call( this, data );
-};
-
-// Use the getTeardownProcess() method to perform actions whenever the dialog is closed.
-LoadDialog.prototype.getTeardownProcess = function ( data ) {
-	return LoadDialog.super.prototype.getTeardownProcess.call( this, data )
-		.first( () => {
-		// Perform cleanup: reset labels
-			this.setuptasks.forEach( ( setuptask ) => {
-				const currentLabel = setuptask.getLabel();
-				setuptask.setLabel(
-					currentLabel.slice( 0, currentLabel.indexOf( '...' ) + 3 )
-				);
+	];
+	const oresVisible = !!options.ores;
+	return ensureCodex().then( () => mountCodexApp( {
+		data() {
+			return {
+				open: true,
+				title: String( i18n.t( 'loading-title' ) ),
+				// Indeterminate progress: Codex ProgressBar
+				tasks: tasks.map( ( label, index ) => ( { label, done: false, error: null, hidden: index === 6 && !oresVisible } ) ),
+				canClose: false
+			};
+		},
+		computed: {
+			displayedTasks() {
+				return this.tasks.filter( ( t ) => !t.hidden );
+			}
+		},
+		template: `
+<cdx-dialog v-model:open="open" :use-close-button="false" :title="title" :default-action="{label: '${ i18n.t( 'button-close' ) }'}" @default="onClose">
+	<div>
+		<div style="margin-bottom:8px"><cdx-progress-bar :inline="true" aria-label="Loading" /></div>
+		<p class="rater-loadDialog-initLabel"><strong>${ i18n.t( 'loading-init' ) }</strong></p>
+		<p v-for="t in displayedTasks" :key="t.label" class="rater-loadDialog-taskLabel">{{ t.label }}<span v-if="t.done"> Done!</span><span v-else-if="t.error"> Failed. {{ t.error }}</span></p>
+	</div>
+</cdx-dialog>
+		`,
+		methods: {
+			// No determinate increments needed for indeterminate ProgressBar
+			markDone( index ) {
+				const t = this.tasks[ index ];
+				if ( t ) {
+					t.done = true;
+				}
+			},
+			markError( index, code, info ) {
+				const t = this.tasks[ index ];
+				if ( t ) {
+					t.error = makeErrorMsg( code, info );
+				}
+				this.canClose = true;
+			},
+			onClose() {
+				try {
+					const active = document.activeElement;
+					if ( active && typeof active.blur === 'function' ) {
+						active.blur();
+					}
+				} catch ( _ ) {}
+				this.open = false;
+			},
+			allVisibleDone() {
+				return this.tasks.filter( ( t ) => !t.hidden ).every( ( t ) => t.done || t.error );
+			}
+		},
+		mounted() {
+			// Wire external promises to update UI (only visible tasks with actual promises)
+			// Step 0 ("loading-prefs") now receives a promise from setup when available
+			// If a promise is missing or falsy, mark it done to avoid blocking
+			const hasPrefsPromise = Array.isArray( options.promises ) && options.promises.length > 0 && !!options.promises[ 0 ];
+			if ( !hasPrefsPromise ) {
+				this.markDone( 0 );
+			}
+			const raw = Array.isArray( options.promises ) ? options.promises.slice() : [];
+			// Promises order from setup: [prefs, banners, talk, parse, params, subject, ores]
+			// Map to task indices [0, 1, 2, 3, 4, 5, 6]
+			const indexMap = [ 0, 1, 2, 3, 4, 5, 6 ];
+			const pairs = raw.map( ( p, i ) => ( { index: indexMap[ i ], p } ) )
+				.filter( ( x ) => Number.isInteger( x.index ) )
+				.filter( ( x ) => x.index !== 6 || !this.tasks[ 6 ].hidden )
+				.map( ( x ) => ( { index: x.index, p: x.p || Promise.reject( new Error( 'missing-promise' ) ) } ) );
+			log.debug( 'pairs', pairs.map( ( x ) => ( { index: x.index, hasP: !!x.p } ) ) );
+			pairs.forEach( ( x ) => {
+				Promise.resolve( x.p ).then( () => {
+					this.markDone( x.index );
+					log.debug( 'DONE', x.index, this.tasks[ x.index ] && this.tasks[ x.index ].label );
+					if ( this.allVisibleDone() ) {
+						log.debug( 'allVisibleDone -> close' );
+						this.onClose();
+					}
+				}, ( err ) => {
+					const code = err && ( err.code || err );
+					this.markError( x.index, code, err );
+					log.debug( 'FAIL', x.index, this.tasks[ x.index ] && this.tasks[ x.index ].label, err );
+					if ( this.allVisibleDone() ) {
+						log.debug( 'allVisibleDone -> close' );
+						this.onClose();
+					}
+				} );
 			} );
-		}, this );
+		}
+	} ) );
 };
 
-export default LoadDialog;
+export default { openLoadDialogCodex };
+
 // </nowiki>

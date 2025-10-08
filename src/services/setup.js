@@ -14,7 +14,7 @@ import { collectAliasesForNames } from '@utils/aliases.js';
 import { getBannerNames } from '@services/collectBannersFromCategory.js';
 import * as cache from '@services/cache.js';
 import windowManager from '@services/windowManager.js';
-import { openLoadDialogCodex } from '@components/LoadDialogCodex.js';
+import { openLoadDialogCodex } from '@components/LoadDialog.js';
 import { getPrefs } from '@services/prefs.js';
 import logger from '@services/logger.js';
 import { filterAndMap } from '@utils/util.js';
