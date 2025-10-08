@@ -56,6 +56,30 @@ export default defineConfig(({ command, mode }) => {
 	plugins: [
 		cssInjectedByJsPlugin(),
 		{
+			name: 'minify-vue-templates',
+			enforce: 'pre',
+			transform( code, id ) {
+				if ( !id.endsWith( '.js' ) || !code.includes( 'template:' ) ) {
+					return null;
+				}
+				// Simple template minification: remove extra whitespace, preserve Vue syntax
+				const templateRegex = /template:\s*`([^`]*)`/gs;
+				let modified = code;
+				modified = modified.replace( templateRegex, ( match, templateContent ) => {
+					// Remove leading/trailing whitespace from each line, collapse multiple spaces
+					const minified = templateContent
+						.split( '\n' )
+						.map( ( line ) => line.trim() )
+						.join( '' )
+						.replace( />\s+</g, '><' ) // Remove whitespace between tags
+						.replace( /\s+/g, ' ' ) // Collapse multiple spaces to one
+						.replace( /\s*([<>{}()[\]])\s*/g, '$1' ); // Remove spaces around brackets
+					return `template: \`${ minified }\``;
+				} );
+				return modified !== code ? { code: modified, map: null } : null;
+			}
+		},
+		{
 			name: 'rater-banner-footer',
 			apply: 'build',
 			enforce: 'post',
