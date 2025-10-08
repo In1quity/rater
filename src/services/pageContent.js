@@ -34,7 +34,8 @@ const fetchLatestRevId = function ( subjectTitle ) {
 			return false;
 		}
 		if ( id < 0 ) {
-			return $.Deferred().reject();
+			// Throw to reject the promise chain
+			throw new Error( 'missing-pageid' );
 		}
 		return page.revisions[ 0 ].revid;
 	} );

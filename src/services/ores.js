@@ -10,17 +10,17 @@ const getPrediction = function ( latestRevId, opts ) {
 	const tiers = ( options.tiers && Array.isArray( options.tiers ) ) ? options.tiers : ( ( config && config.ores && Array.isArray( config.ores.topTierClasses ) ) ? config.ores.topTierClasses : [ 'FA', 'GA' ] );
 	const baseline = options.baseline || ( ( config && config.ores && config.ores.baselineClass ) || 'B' );
 	if ( !latestRevId ) {
-		return $.Deferred().resolve( null );
+		return Promise.resolve( null );
 	}
 	return API.getORES( latestRevId, wiki )
 		.then( ( result ) => {
 			const root = result && ( result[ wiki ] || result[ Object.keys( result )[ 0 ] ] );
 			if ( !root || !root.scores || !root.scores[ latestRevId ] || !root.scores[ latestRevId ].articlequality ) {
-				return $.Deferred().resolve( null );
+				return null;
 			}
 			const data = root.scores[ latestRevId ].articlequality;
 			if ( data.error ) {
-				return $.Deferred().resolve( null );
+				return null;
 			}
 			const prediction = data.score.prediction;
 			const probabilities = data.score.probability || {};

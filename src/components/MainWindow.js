@@ -430,11 +430,16 @@ MainWindow.prototype.getSetupProcess = function ( data ) {
 				this.pagetypeLabel.setLabel( i18n.t( 'label-featured-article' ) ).toggle( true );
 			} else if ( this.pageInfo.isArticle && data.isFL ) {
 				this.pagetypeLabel.setLabel( i18n.t( 'label-featured-list' ) ).toggle( true );
-			} else if ( this.pageInfo.isArticle && data.isList ) {
-				this.pagetypeLabel.setLabel( i18n.t( 'label-list-article' ) ).toggle( true );
 			} else if ( data.ores ) {
+				log.debug( 'Show ORES', data.ores );
 				this.oresClass = data.ores.prediction;
-				const predictionEl = this.oresLabel.$element[ 0 ].querySelector( '.oresPrediction' );
+				let predictionEl = this.oresLabel.$element[ 0 ].querySelector( '.oresPrediction' );
+				if ( !predictionEl ) {
+					// Recreate the prediction container if missing (robustness against DOM changes)
+					predictionEl = document.createElement( 'span' );
+					predictionEl.className = 'oresPrediction';
+					this.oresLabel.$element[ 0 ].appendChild( predictionEl );
+				}
 				if ( predictionEl ) {
 					predictionEl.appendChild( document.createTextNode( i18n.t( 'label-prediction' ) ) );
 					const strong = document.createElement( 'strong' );
@@ -443,6 +448,8 @@ MainWindow.prototype.getSetupProcess = function ( data ) {
 					predictionEl.appendChild( document.createTextNode( '\u00A0(' + data.ores.probability + ')' ) );
 				}
 				this.oresLabel.toggle( true );
+			} else if ( this.pageInfo.isArticle && data.isList ) {
+				this.pagetypeLabel.setLabel( i18n.t( 'label-list-article' ) ).toggle( true );
 			} else if ( this.pageInfo.isArticle ) {
 				this.pagetypeLabel.setLabel( i18n.t( 'label-article-page' ) ).toggle( true );
 			} else {

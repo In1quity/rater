@@ -14,12 +14,16 @@ import { collectAliasesForNames } from '@utils/aliases.js';
 import { getBannerNames } from '@services/collectBannersFromCategory.js';
 import * as cache from '@services/cache.js';
 import windowManager from '@services/windowManager.js';
+import { openLoadDialogCodex } from '@components/LoadDialogCodex.js';
 import { getPrefs } from '@services/prefs.js';
+import logger from '@services/logger.js';
 import { filterAndMap } from '@utils/util.js';
 import { fetchTalkWikitext, fetchLatestRevId } from '@services/pageContent.js';
 import { getPrediction as getOresPrediction } from '@services/ores.js';
 import { checkSubjectFeatures } from '@services/subjectPage.js';
 // <nowiki>
+
+const log = logger.get( 'setup' );
 
 const setupRater = function ( clickEvent ) {
 	if ( clickEvent ) {
@@ -56,11 +60,11 @@ const setupRater = function ( clickEvent ) {
 	const templateDetailsPromise = parseTalkPromise.then( ( templates ) => {
 		const perTemplate = templates.map( ( template ) => {
 			if ( isShellTemplate( template ) ) {
-				return $.Deferred().resolve();
+				return Promise.resolve();
 			}
 			return loadParamDataAndSuggestions( template ).then( () => loadRatings( template ) );
 		} );
-		return $.when.apply( null, perTemplate ).then( () => {
+		return Promise.all( perTemplate ).then( () => {
 			templates.forEach( ( t ) => {
 				addMissingParams( t );
 			} );
@@ -75,7 +79,7 @@ const setupRater = function ( clickEvent ) {
 				return res;
 			}
 			if ( res ) {
-				return $.extend( {}, res, { isList: !res.isFL && /^Lists? of/.test( subjectPage.getPrefixedText() ) } );
+				return Object.assign( {}, res, { isList: !res.isFL && /^Lists? of/.test( subjectPage.getPrefixedText() ) } );
 			}
 			return res;
 		} );
@@ -85,38 +89,49 @@ const setupRater = function ( clickEvent ) {
 	let oresPromise = null;
 	if ( shouldGetOres ) {
 		const latestRevIdPromise = !currentPage.isTalkPage() ?
-			$.Deferred().resolve( config.mw.wgRevisionId ) :
+			Promise.resolve( config.mw.wgRevisionId ) :
 			fetchLatestRevId( subjectPage.getPrefixedText() );
 		oresPromise = latestRevIdPromise.then( ( latestRevId ) => getOresPrediction( latestRevId ) );
 	}
 
-	// Open the load dialog
-	const isOpenedPromise = $.Deferred();
-	const loadDialogWin = windowManager.openWindow( 'loadDialog', {
-		promises: [
-			bannersPromise,
-			loadTalkPromise,
-			parseTalkPromise,
-			templateDetailsPromise,
-			subjectPageCheckPromise,
-			shouldGetOres && oresPromise
-		],
-		ores: shouldGetOres,
-		isOpened: isOpenedPromise
+	// Open the load dialog (Codex) and keep a handle to unmount later
+	const dialogPromises = [
+		// Align with tasks order in LoadDialogCodex (0..6)
+		prefsPromise,
+		bannersPromise,
+		loadTalkPromise,
+		parseTalkPromise,
+		templateDetailsPromise,
+		subjectPageCheckPromise,
+		shouldGetOres && oresPromise
+	];
+	log.debug( 'openLoadDialogCodex', {
+		shouldGetOres: shouldGetOres,
+		length: dialogPromises.length,
+		types: dialogPromises.map( ( p ) => ( p ? typeof p.then : 'falsy' ) )
+	} );
+	const loadDialogMountPromise = openLoadDialogCodex( {
+		promises: dialogPromises,
+		ores: shouldGetOres
 	} );
 
-	loadDialogWin.opened.then( isOpenedPromise.resolve );
-
-	$.when(
+	Promise.allSettled( [
 		prefsPromise,
 		loadTalkPromise,
 		templateDetailsPromise,
 		bannersPromise,
 		subjectPageCheckPromise,
-		shouldGetOres && oresPromise
-	).then(
+		shouldGetOres ? oresPromise : Promise.resolve( null )
+	] ).then(
 		// All succeded
-		( preferences, talkWikitext, banners, bannerNames, subjectPageCheck, oresPredicition ) => {
+		( settled ) => {
+			log.debug( 'allSettled statuses', settled.map( ( s, i ) => ( { i, status: s && s.status } ) ) );
+			const preferences = settled[ 0 ] && settled[ 0 ].status === 'fulfilled' ? settled[ 0 ].value : null;
+			const talkWikitext = settled[ 1 ] && settled[ 1 ].status === 'fulfilled' ? settled[ 1 ].value : null;
+			const banners = settled[ 2 ] && settled[ 2 ].status === 'fulfilled' ? settled[ 2 ].value : null; // parsed templates list
+			const bannerNames = settled[ 3 ] && settled[ 3 ].status === 'fulfilled' ? settled[ 3 ].value : null; // list of all banner names
+			const subjectPageCheck = settled[ 4 ] && settled[ 4 ].status === 'fulfilled' ? settled[ 4 ].value : null;
+			const oresPredicition = settled[ 5 ] && settled[ 5 ].status === 'fulfilled' ? settled[ 5 ].value : null;
 			const result = {
 				success: true,
 				talkpage: talkPage,
@@ -134,26 +149,47 @@ const setupRater = function ( clickEvent ) {
 					}
 				}
 			}
-			if ( oresPredicition && subjectPageCheck && !subjectPageCheck.isGA && !subjectPageCheck.isFA && !subjectPageCheck.isFL ) {
+			// Pass ORES data through when available (keep compatibility with consumers)
+			if ( oresPredicition ) {
 				result.ores = oresPredicition;
 			}
-			windowManager.closeWindow( 'loadDialog', result );
+			log.debug( 'result summary', {
+				banners: result.banners ? result.banners.length : 0,
+				bannerNames: result.bannerNames ? result.bannerNames.length : 0,
+				preferences: !!result.preferences,
+				isArticle: result.isArticle,
+				pageInfo: !!result.pageInfo,
+				resoresPresent: !!result.ores
+			} );
+			// Close Codex dialog gracefully: toggle open=false to let Codex clean up body classes, then unmount
+			loadDialogMountPromise.then( ( m ) => {
+				try {
+					// Defocus before hiding to avoid aria-hidden on focused descendant
+					const active = document.activeElement;
+					if ( active && typeof active.blur === 'function' ) {
+						active.blur();
+					}
+					if ( m && m.app ) {
+						m.app.open = false;
+					}
+				} catch ( _ ) {}
+				setTimeout( () => {
+					try {
+						m.unmount();
+					} catch ( _ ) {}
+				}, 150 );
+			} );
+			setupCompletedPromise.resolve( result );
 
 		}
-	); // Any failures are handled by the loadDialog window itself
-
-	// On window closed, check data, and resolve/reject setupCompletedPromise
-	loadDialogWin.closed.then( ( data ) => {
-		if ( data && data.success ) {
-			// Got everything needed: Resolve promise with this data
-			setupCompletedPromise.resolve( data );
-		} else if ( data && data.error ) {
-			// There was an error: Reject promise with error code/info
-			setupCompletedPromise.reject( data.error.code, data.error.info );
-		} else {
-			// Window closed before completion: resolve promise without any data
-			setupCompletedPromise.resolve( null );
-		}
+	).catch( ( err ) => {
+		const code = err && err.code;
+		const info = err;
+		setupCompletedPromise.reject( code, info );
+		cache.clearInvalidItems();
+	} );
+	// Cleanup cache on success path too
+	setupCompletedPromise.always( () => {
 		cache.clearInvalidItems();
 	} );
 	return setupCompletedPromise;
