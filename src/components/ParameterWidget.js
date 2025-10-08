@@ -35,9 +35,9 @@ function ParameterWidget( parameter, paramData, config ) {
 			const isIndeterminate = !isFirstAllowedVal && !isSecondAllowedVal;
 			this.checkbox = new OO.ui.CheckboxInputWidget( {
 				selected: isIndeterminate ? undefined : isFirstAllowedVal,
-				indeterminate: isIndeterminate ? true : undefined,
-				$element: $( "<label style='margin:0 0 0 5px'>" )
+				indeterminate: isIndeterminate ? true : undefined
 			} );
+			this.checkbox.$element.addClass( 'rater-parameterWidget-checkbox' );
 			break;
 		default:
 			// No checkbox
@@ -54,31 +54,17 @@ function ParameterWidget( parameter, paramData, config ) {
 			( val ) => val !== null,
 			( val ) => ( { data: val, label: val } )
 		),
-		$element: $( "<div style='margin-bottom:0;'>" ),
 		$overlay: this.$overlay
 	} );
-	// Reduce the excessive whitespace/height
-	this.input.$element.find( 'input' ).css( {
-		'padding-top': 0,
-		'padding-bottom': '2px',
-		height: '24px'
-	} );
-	// Fix label positioning within the reduced height
-	this.input.$element.find( 'span.oo-ui-labelElement-label' ).css( { 'line-height': 'normal' } );
-	// Also reduce height of dropdown button (if options are present)
-	this.input.$element.find( 'a.oo-ui-buttonElement-button' ).css( {
-		'padding-top': 0,
-		height: '24px',
-		'min-height': '0'
-	} );
+	this.input.$element.addClass( 'rater-parameterWidget-input' );
 
 	this.confirmButton = new OO.ui.ButtonWidget( {
 		icon: 'check',
 		label: 'Done',
 		framed: false,
-		flags: 'progressive',
-		$element: $( "<span style='margin-right:0'>" )
+		flags: 'progressive'
 	} );
+	this.confirmButton.$element.addClass( 'rater-parameterWidget-confirmButton' );
 
 	this.cancelButton = new OO.ui.ButtonWidget( {
 		icon: 'undo',
@@ -99,14 +85,9 @@ function ParameterWidget( parameter, paramData, config ) {
 			this.confirmButton,
 			this.cancelButton,
 			this.deleteButton
-		],
-		$element: $( "<span style='font-size:92%'>" )
+		]
 	} );
-	this.editButtonControls.$element.find( 'a span:first-child' ).css( {
-		'min-width': 'unset',
-		width: '16px',
-		'margin-right': 0
-	} );
+	this.editButtonControls.$element.addClass( 'rater-parameterWidget-editButtonGroup' );
 
 	this.editLayoutControls = new HorizontalLayoutWidget( {
 		items: [
@@ -122,43 +103,35 @@ function ParameterWidget( parameter, paramData, config ) {
 		help: this.paramData.description && this.paramData.description.en || false,
 		helpInline: true
 	} ).toggle();
-	this.editLayout.$element.find( 'label.oo-ui-inline-help' ).css( { margin: '-10px 0 5px 10px' } );
+	this.editLayout.$element.find( 'label.oo-ui-inline-help' ).addClass( 'rater-parameterWidget-editLayoutHelp' );
 
 	/* --- READ (COLLAPSED) DISPLAY OF PARAMETER --- */
 
 	this.invalidIcon = new OO.ui.IconWidget( {
 		icon: 'block',
 		title: 'Invalid parameter: no value specified!',
-		flags: 'destructive',
-		$element: $( "<span style='margin: 0 5px 0 -5px; min-width: 16px; width: 16px;'>" )
+		flags: 'destructive'
 	} ).toggle( this.isInvalid );
+	this.invalidIcon.$element.addClass( 'rater-parameterWidget-invalidIcon' );
 	this.fullLabel = new OO.ui.LabelWidget( {
 		label: this.name +
 			( this.value ?
 				' = ' + this.value :
 				' '
-			),
-		$element: $( "<label style='margin: 0;'>" )
+			)
 	} );
+	this.fullLabel.$element.addClass( 'rater-parameterWidget-fullLabel' );
 	this.autofilledIcon = new OO.ui.IconWidget( {
 		icon: 'robot',
 		title: 'Autofilled by Rater',
-		flags: 'progressive',
-		$element: $( "<span style='margin: 0 -5px 0 5px;min-width: 16px;width: 16px;'>" )
+		flags: 'progressive'
 	} ).toggle( this.autofilled );
+	this.autofilledIcon.$element.addClass( 'rater-parameterWidget-autofilledIcon' );
 	this.editButton = new OO.ui.ButtonWidget( {
 		icon: 'edit',
-		framed: false,
-		$element: $( "<span style='margin-bottom: 0;'>" )
+		framed: false
 	} );
-	this.editButton.$element.find( 'a' ).css( {
-		'border-radius': '0 10px 10px 0',
-		'margin-left': '5px'
-	} );
-	this.editButton.$element.find( 'a span' ).first().css( {
-		'min-width': 'unset',
-		width: '16px'
-	} );
+	this.editButton.$element.addClass( 'rater-parameterWidget-editButton' );
 
 	this.readLayout = new OO.ui.HorizontalLayout( {
 		items: [
@@ -166,25 +139,23 @@ function ParameterWidget( parameter, paramData, config ) {
 			this.fullLabel,
 			this.autofilledIcon,
 			this.editButton
-		],
-		$element: $( "<span style='margin:0;width:unset;'>" )
+		]
 	} );
+	this.readLayout.$element.addClass( 'rater-parameterWidget-readLayout' );
 	if ( this.checkbox ) {
 		this.readLayout.addItems( [ this.checkbox ], 2 );
 	}
 
 	/* --- CONTAINER FOR BOTH LAYOUTS --- */
-	this.$element = $( '<div>' ).addClass( 'rater-parameterWidget' )
-		.css( {
-			width: 'unset',
-			display: 'inline-block',
-			border: this.autofilled ? '1px dashed #36c' : '1px solid #ddd',
-			'border-radius': '10px',
-			'padding-left': '10px',
-			margin: '0 8px 8px 0',
-			background: this.isInvalid ? '#fddd' : '#fffe'
-		} )
-		.append( this.readLayout.$element, this.editLayout.$element );
+	this.$element = $( '<div>' ).addClass( 'rater-parameterWidget' );
+	if ( this.autofilled ) {
+		this.$element.addClass( 'rater-parameterWidget-autofilled' );
+	} else if ( this.isInvalid ) {
+		this.$element.addClass( 'rater-parameterWidget-invalid' );
+	} else {
+		this.$element.addClass( 'rater-parameterWidget-normal' );
+	}
+	this.$element.append( this.readLayout.$element, this.editLayout.$element );
 
 	this.editButton.connect( this, { click: 'onEditClick' } );
 	this.confirmButton.connect( this, { click: 'onConfirmClick' } );
@@ -204,7 +175,8 @@ ParameterWidget.prototype.onUpdatedSize = function () {
 ParameterWidget.prototype.onEditClick = function () {
 	this.readLayout.toggle( false );
 	this.editLayout.toggle( true );
-	this.$element.css( { background: '#fffe' } );
+	this.$element.removeClass( 'rater-parameterWidget-normal rater-parameterWidget-autofilled rater-parameterWidget-invalid' )
+		.addClass( 'rater-parameterWidget-editing' );
 	this.input.focus();
 	this.onUpdatedSize();
 };
@@ -248,7 +220,7 @@ ParameterWidget.prototype.setValue = function ( val ) {
 	// Turn off autofill stylings/icon
 	this.autofilled = false;
 	this.autofilledIcon.toggle( false );
-	this.$element.css( { border: '1px solid #ddd' } );
+	this.$element.removeClass( 'rater-parameterWidget-autofilled' );
 
 	// Update the stored value
 	this.value = val;
@@ -259,7 +231,8 @@ ParameterWidget.prototype.setValue = function ( val ) {
 	// Update validity
 	this.isInvalid = ( this.value === null || typeof this.value === 'undefined' );
 	this.invalidIcon.toggle( this.isInvalid );
-	this.$element.css( { background: this.isInvalid ? '#fddd' : '#fffe' } );
+	this.$element.removeClass( 'rater-parameterWidget-normal rater-parameterWidget-invalid' )
+		.addClass( this.isInvalid ? 'rater-parameterWidget-invalid' : 'rater-parameterWidget-normal' );
 
 	// Updated the label for read mode
 	this.fullLabel.setLabel(
@@ -295,7 +268,8 @@ ParameterWidget.prototype.setValue = function ( val ) {
 ParameterWidget.prototype.setAutofilled = function () {
 	this.autofilled = true;
 	this.autofilledIcon.toggle( true );
-	this.$element.css( { border: '1px dashed #36c' } );
+	this.$element.removeClass( 'rater-parameterWidget-normal' )
+		.addClass( 'rater-parameterWidget-autofilled' );
 };
 
 ParameterWidget.prototype.makeWikitext = function ( pipeStyle, equalsStyle ) {

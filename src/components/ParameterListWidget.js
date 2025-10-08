@@ -39,9 +39,9 @@ const ParameterListWidget = function ParameterListWidget( config ) {
 			// Add button to show the hidden params
 			this.showMoreParametersButton = new OO.ui.ButtonWidget( {
 				label: 'Show ' + hiddenCount + ' more ' + ( hiddenCount === 1 ? 'parameter' : 'parameters' ),
-				framed: false,
-				$element: $( "<span style='margin-bottom:0'>" )
+				framed: false
 			} );
+			this.showMoreParametersButton.$element.addClass( 'rater-parameterListWidget-showMoreButton' );
 			this.addItems( [ this.showMoreParametersButton ] );
 		}
 	}
@@ -50,9 +50,9 @@ const ParameterListWidget = function ParameterListWidget( config ) {
 	this.addParametersButton = new OO.ui.ButtonWidget( {
 		label: i18n.t( 'button-add-parameter' ),
 		icon: 'add',
-		framed: false,
-		$element: $( "<span style='margin-bottom:0'>" )
+		framed: false
 	} );
+	this.addParametersButton.$element.addClass( 'rater-parameterListWidget-addButton' );
 	this.addItems( [ this.addParametersButton ] );
 
 	// Refresh label after i18n loads (defensive in case UI is constructed before i18n finishes)

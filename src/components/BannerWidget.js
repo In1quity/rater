@@ -70,27 +70,24 @@ function BannerWidget( template, config ) {
 		icon: 'trash',
 		label: i18n.t( 'button-remove-banner' ),
 		title: i18n.t( 'button-remove-banner' ),
-		flags: 'destructive',
-		$element: $( '<div style="width:100%">' )
+		flags: 'destructive'
 	} );
+	this.removeButton.$element.addClass( 'rater-bannerWidget-removeButton' );
 	this.clearButton = new OO.ui.ButtonWidget( {
 		icon: 'cancel',
 		label: i18n.t( 'button-clear-parameters' ),
 		title: i18n.t( 'button-clear-parameters' ),
-		flags: 'destructive',
-		$element: $( '<div style="width:100%">' )
+		flags: 'destructive'
 	} );
-	this.removeButton.$element.find( 'a' ).css( 'width', '100%' );
-	this.clearButton.$element.find( 'a' ).css( 'width', '100%' );
+	this.clearButton.$element.addClass( 'rater-bannerWidget-clearButton' );
 
 	this.titleButtonsGroup = new OO.ui.ButtonGroupWidget( {
-		items: [ this.removeButton, this.clearButton ],
-		$element: $( "<span style='width:100%;'>" )
+		items: [ this.removeButton, this.clearButton ]
 	} );
+	this.titleButtonsGroup.$element.addClass( 'rater-bannerWidget-titleButtonsGroup' );
 
 	this.mainLabelPopupButton = new OO.ui.PopupButtonWidget( {
 		label: `{{${ template.getTitle().getMainText() }}}${ this.inactiveProject ? i18n.t( 'label-inactive-suffix' ) : '' }`,
-		$element: $( "<span style='display:inline-block;width:48%;margin-right:0;padding-right:8px'>" ),
 		$overlay: this.$overlay,
 		indicator: 'down',
 		framed: false,
@@ -102,19 +99,17 @@ function BannerWidget( template, config ) {
 			anchor: false
 		}
 	} );
-	this.mainLabelPopupButton.$element
-		.children( 'a' ).first().css( { 'font-size': '110%' } )
-		.find( 'span.oo-ui-labelElement-label' ).css( { 'white-space': 'normal' } );
+	this.mainLabelPopupButton.$element.addClass( 'rater-bannerWidget-mainLabelPopup' );
 
 	// Rating dropdowns
 	if ( this.isShellTemplate ) {
 		this.classDropdown = new DropdownParameterWidget( {
-			label: new OO.ui.HtmlSnippet( '<span style="color:#777">' + i18n.t( 'label-class' ) + '</span>' ),
+			label: new OO.ui.HtmlSnippet( '<span class="rater-bannerWidget-labelMuted">' + i18n.t( 'label-class' ) + '</span>' ),
 			menu: {
 				items: [
 					new OO.ui.MenuOptionWidget( {
 						data: null,
-						label: new OO.ui.HtmlSnippet( `<span style="color:#777">(${ config.isArticle ? i18n.t( 'option-no-class' ) : i18n.t( 'option-auto-detect' ) })</span>` )
+						label: new OO.ui.HtmlSnippet( `<span class="rater-bannerWidget-labelMuted">(${ config.isArticle ? i18n.t( 'option-no-class' ) : i18n.t( 'option-auto-detect' ) })</span>` )
 					} ),
 					...globalConfig.bannerDefaults.classes.map( ( classname ) => new OO.ui.MenuOptionWidget( {
 						data: classname,
@@ -130,12 +125,12 @@ function BannerWidget( template, config ) {
 	} else if ( this.hasClassRatings ) {
 		// selectInitialValue helper is defined above
 		this.classDropdown = new DropdownParameterWidget( {
-			label: new OO.ui.HtmlSnippet( '<span style="color:#777">' + i18n.t( 'label-class' ) + '</span>' ),
+			label: new OO.ui.HtmlSnippet( '<span class="rater-bannerWidget-labelMuted">' + i18n.t( 'label-class' ) + '</span>' ),
 			menu: {
 				items: [
 					new OO.ui.MenuOptionWidget( {
 						data: null,
-						label: new OO.ui.HtmlSnippet( `<span style=\"color:#777\">(${ config.isArticle ? i18n.t( 'option-inherit-from-shell' ) : i18n.t( 'option-auto-detect' ) })</span>` )
+						label: new OO.ui.HtmlSnippet( `<span class="rater-bannerWidget-labelMuted">(${ config.isArticle ? i18n.t( 'option-inherit-from-shell' ) : i18n.t( 'option-auto-detect' ) })</span>` )
 					} ),
 					...template.classes.map( ( classname ) => new OO.ui.MenuOptionWidget( {
 						data: classname,
@@ -153,11 +148,11 @@ function BannerWidget( template, config ) {
 
 	if ( this.hasImportanceRatings ) {
 		this.importanceDropdown = new DropdownParameterWidget( {
-			label: new OO.ui.HtmlSnippet( '<span style="color:#777">' + i18n.t( 'label-importance' ) + '</span>' ),
+			label: new OO.ui.HtmlSnippet( '<span class="rater-bannerWidget-labelMuted">' + i18n.t( 'label-importance' ) + '</span>' ),
 			menu: {
 				items: [
 					new OO.ui.MenuOptionWidget( {
-						data: null, label: new OO.ui.HtmlSnippet( `<span style="color:#777">(${ config.isArticle ? i18n.t( 'option-no-importance' ) : i18n.t( 'option-auto-detect' ) })</span>` )
+						data: null, label: new OO.ui.HtmlSnippet( `<span class="rater-bannerWidget-labelMuted">(${ config.isArticle ? i18n.t( 'option-no-importance' ) : i18n.t( 'option-auto-detect' ) })</span>` )
 					} ),
 					...template.importances.map( ( importance ) => new OO.ui.MenuOptionWidget( {
 						data: importance,
@@ -212,7 +207,6 @@ function BannerWidget( template, config ) {
 	this.addParameterNameInput = new SuggestionLookupTextInputWidget( {
 		suggestions: template.parameterSuggestions,
 		placeholder: i18n.t( 'placeholder-parameter-name' ),
-		$element: $( "<div style='display:inline-block;width:40%'>" ),
 		validate: function ( val ) {
 			const { validName, name, value } = this.getAddParametersInfo( val );
 			return ( !name && !value ) ? true : validName;
@@ -220,10 +214,10 @@ function BannerWidget( template, config ) {
 		allowSuggestionsWhenEmpty: true,
 		$overlay: this.$overlay
 	} );
+	this.addParameterNameInput.$element.addClass( 'rater-bannerWidget-addParameterName' );
 	this.updateAddParameterNameSuggestions();
 	this.addParameterValueInput = new SuggestionLookupTextInputWidget( {
 		placeholder: i18n.t( 'placeholder-parameter-value' ),
-		$element: $( "<div style='display:inline-block;width:40%'>" ),
 		validate: function ( val ) {
 			const { validValue, name, value } = this.getAddParametersInfo( null, val );
 			return ( !name && !value ) ? true : validValue;
@@ -231,6 +225,7 @@ function BannerWidget( template, config ) {
 		allowSuggestionsWhenEmpty: true,
 		$overlay: this.$overlay
 	} );
+	this.addParameterValueInput.$element.addClass( 'rater-bannerWidget-addParameterValue' );
 	this.addParameterButton = new OO.ui.ButtonWidget( {
 		label: i18n.t( 'button-add' ),
 		icon: 'add',
@@ -268,13 +263,7 @@ function BannerWidget( template, config ) {
 	}
 
 	if ( this.isShellTemplate ) {
-		this.$element.css( {
-			background: '#eee',
-			'border-radius': '10px',
-			padding: '0 10px 5px',
-			'margin-bottom': '12px',
-			'font-size': '92%'
-		} );
+		this.$element.addClass( 'rater-bannerWidget-shellTemplate' );
 	}
 
 	/* --- EVENT HANDLING --- */

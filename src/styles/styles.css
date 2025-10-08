@@ -303,6 +303,32 @@ html body.rater-mainWindow-open #mw-teleport-target {
 	margin-bottom: 0;
 }
 
+/* LoadDialog styles */
+.rater-loadDialog-taskLabel {
+	display: block;
+}
+
+.rater-loadDialog-initLabel {
+	display: block;
+}
+
+/* DropdownParameterWidget styles */
+.rater-dropdownParameterWidget {
+	display: inline-block;
+	width: 24%;
+}
+
+.rater-dropdownParameterWidget-autofilledIcon {
+	margin: 0 -5px 0 5px;
+	min-width: 16px;
+	width: 16px;
+	left: unset;
+}
+
+.rater-dropdownParameterWidget-autofilled .oo-ui-dropdownWidget-handle {
+	border: 1px dashed #36c;
+}
+
 /* BannerWidget styles */
 .rater-bannerWidget-removeButton,
 .rater-bannerWidget-clearButton {

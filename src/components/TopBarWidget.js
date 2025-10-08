@@ -65,7 +65,7 @@ function TopBarWidget( opts ) {
 				} ),
 				new OO.ui.MenuOptionWidget( {
 					data: { class: null },
-					label: new OO.ui.HtmlSnippet( '<span style="color:#777">(' + i18n.t( 'topbar-no-class' ) + ')</span>' )
+					label: new OO.ui.HtmlSnippet( '<span class="rater-bannerWidget-labelMuted">(' + i18n.t( 'topbar-no-class' ) + ')</span>' )
 				} ),
 				...config.bannerDefaults.classes.map( ( classname ) => new OO.ui.MenuOptionWidget( {
 					data: { class: classname },
@@ -77,7 +77,7 @@ function TopBarWidget( opts ) {
 				} ),
 				new OO.ui.MenuOptionWidget( {
 					data: { importance: null },
-					label: new OO.ui.HtmlSnippet( '<span style="color:#777">(' + i18n.t( 'topbar-no-importance' ) + ')</span>' )
+					label: new OO.ui.HtmlSnippet( '<span class="rater-bannerWidget-labelMuted">(' + i18n.t( 'topbar-no-importance' ) + ')</span>' )
 				} ),
 				...config.bannerDefaults.importances.map( ( importance ) => new OO.ui.MenuOptionWidget( {
 					data: { importance: importance },

@@ -2,9 +2,7 @@
 
 function DropdownParameterWidget( config ) {
 	// Configuration initialization
-	config = $.extend( {
-		$element: $( "<span style='display:inline-block;width:24%'>" )
-	}, config || {} );
+	config = Object.assign( {}, config || {} );
 
 	// Call parent constructor
 	DropdownParameterWidget.super.call( this, config );
@@ -17,9 +15,9 @@ function DropdownParameterWidget( config ) {
 	this.autofilledIcon = new OO.ui.IconWidget( {
 		icon: 'robot',
 		title: 'Autofilled by Rater',
-		flags: 'progressive',
-		$element: $( "<span style='margin: 0 -5px 0 5px;min-width: 16px;width: 16px;left:unset;'>" )
+		flags: 'progressive'
 	} ).toggle( this.autofilled );
+	this.autofilledIcon.$element.addClass( 'rater-dropdownParameterWidget-autofilledIcon' );
 	this.$element.find( '.oo-ui-indicatorElement-indicator' ).before(
 		this.autofilledIcon.$element
 	);
@@ -34,9 +32,11 @@ OO.inheritClass( DropdownParameterWidget, OO.ui.DropdownWidget );
 
 DropdownParameterWidget.prototype.setAutofilled = function ( setAutofill ) {
 	this.autofilledIcon.toggle( !!setAutofill );
-	this.$element.find( '.oo-ui-dropdownWidget-handle' ).css( {
-		border: setAutofill ? '1px dashed #36c' : ''
-	} );
+	if ( setAutofill ) {
+		this.$element.addClass( 'rater-dropdownParameterWidget-autofilled' );
+	} else {
+		this.$element.removeClass( 'rater-dropdownParameterWidget-autofilled' );
+	}
 	this.autofilled = !!setAutofill;
 };
 

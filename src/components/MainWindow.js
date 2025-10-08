@@ -150,13 +150,13 @@ MainWindow.prototype.initialize = function () {
 	oresPrediction.className = 'oresPrediction';
 	oresLabelContent.appendChild( oresPrediction );
 	this.oresLabel = new OO.ui.LabelWidget( {
-		$element: oresLabelEl,
+		$element: $( oresLabelEl ),
 		label: oresLabelContent
 	} ).toggle( false );
 	const pagetypeLabelEl = document.createElement( 'span' );
 	pagetypeLabelEl.className = 'rater-mainWindow-pagetypeLabel';
 	this.pagetypeLabel = new OO.ui.LabelWidget( {
-		$element: pagetypeLabelEl
+		$element: $( pagetypeLabelEl )
 	} ).toggle( false );
 	this.$foot.prepend( this.oresLabel.$element, this.pagetypeLabel.$element );
 
@@ -185,7 +185,7 @@ MainWindow.prototype.initialize = function () {
 	this.parsedContentContainer = new OO.ui.FieldsetLayout( {
 		label: i18n.t( 'label-preview' )
 	} );
-	this.parsedContentWidget = new OO.ui.LabelWidget( { label: '', $element: document.createElement( 'div' ) } );
+	this.parsedContentWidget = new OO.ui.LabelWidget( { label: '', $element: $( document.createElement( 'div' ) ) } );
 	this.parsedContentContainer.addItems( [
 		new OO.ui.FieldLayout(
 			this.parsedContentWidget,

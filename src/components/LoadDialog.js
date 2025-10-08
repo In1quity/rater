@@ -36,47 +36,35 @@ LoadDialog.prototype.initialize = function () {
 		progress: 1
 	} );
 	this.setuptasks = [
-		new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-prefs' ),
-			$element: $( '<p style="display:block">' )
-		} ),
-		new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-banners' ),
-			$element: $( '<p style="display:block">' )
-		} ),
-		new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-talk' ),
-			$element: $( '<p style="display:block">' )
-		} ),
-		new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-parse' ),
-			$element: $( '<p style="display:block">' )
-		} ),
-		new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-params' ),
-			$element: $( '<p style="display:block">' )
-		} ),
-		new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-subject' ),
-			$element: $( '<p style="display:block">' )
-		} ),
-		new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-ores' ),
-			$element: $( '<p style="display:block">' )
-		} ).toggle()
-	];
+		i18n.t( 'loading-prefs' ),
+		i18n.t( 'loading-banners' ),
+		i18n.t( 'loading-talk' ),
+		i18n.t( 'loading-parse' ),
+		i18n.t( 'loading-params' ),
+		i18n.t( 'loading-subject' ),
+		i18n.t( 'loading-ores' )
+	].map( ( label, index ) => {
+		const widget = new OO.ui.LabelWidget( { label: label } );
+		widget.$element.addClass( 'rater-loadDialog-taskLabel' );
+		if ( index === 6 ) {
+			widget.toggle();
+		}
+		return widget;
+	} );
 	this.closeButton = new OO.ui.ButtonWidget( {
 		label: i18n.t( 'button-close' )
 	} ).toggle();
 	this.setupPromises = [];
 
 	// Append content to layout
+	const initLabel = new OO.ui.LabelWidget( {
+		label: i18n.t( 'loading-init' )
+	} );
+	initLabel.$element.addClass( 'rater-loadDialog-initLabel' );
+	initLabel.$element[ 0 ].innerHTML = '<strong>' + i18n.t( 'loading-init' ) + '</strong>';
 	this.content.$element.append(
 		this.progressBar.$element,
-		( new OO.ui.LabelWidget( {
-			label: i18n.t( 'loading-init' ),
-			$element: $( '<strong style="display:block">' )
-		} ) ).$element,
+		initLabel.$element,
 		...this.setuptasks.map( ( widget ) => widget.$element ),
 		this.closeButton.$element
 	);
