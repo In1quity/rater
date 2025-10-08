@@ -17,7 +17,7 @@ function removeBannerPrefix( bannerName ) {
 
 function TopBarWidget( opts ) {
 	// Configuration initialization
-	opts = $.extend(
+	opts = Object.assign(
 		{
 			expanded: false,
 			framed: false,
@@ -32,9 +32,9 @@ function TopBarWidget( opts ) {
 	// Search box
 	this.searchBox = new SuggestionLookupTextInputWidget( {
 		placeholder: i18n.t( 'topbar-add-wikiproject' ),
-		$element: $( "<div style='display:inline-block; margin:0 -1px; width:calc(100% - 55px);'>" ),
 		$overlay: this.$overlay
 	} );
+	this.searchBox.$element.addClass( 'rater-topBarWidget-searchBox' );
 	if ( opts && opts.banners ) {
 		buildBannerSuggestions( opts.banners )
 			.then( ( bannerOptions ) => this.searchBox.setSuggestions( bannerOptions ) );
@@ -44,11 +44,13 @@ function TopBarWidget( opts ) {
 	this.addBannerButton = new OO.ui.ButtonWidget( {
 		icon: 'add',
 		title: i18n.t( 'button-add' ),
-		flags: 'progressive',
-		$element: $( "<span style='float:right;margin: 0;transform: translateX(-12px);'>" )
+		flags: 'progressive'
 	} );
-	const $searchContainer = $( "<div style='display:inline-block; flex-shrink:1; flex-grow:100; min-width:250px; width:50%;'>" )
-		.append( this.searchBox.$element, this.addBannerButton.$element );
+	this.addBannerButton.$element.addClass( 'rater-topBarWidget-addButton' );
+	const searchContainer = document.createElement( 'div' );
+	searchContainer.className = 'rater-topBarWidget-searchContainer';
+	searchContainer.appendChild( this.searchBox.$element[ 0 ] );
+	searchContainer.appendChild( this.addBannerButton.$element[ 0 ] );
 
 	// Set all classes/importances
 	// in the style of a popup button with a menu (is actually a dropdown with a hidden label, because that makes the coding easier.)
@@ -84,9 +86,10 @@ function TopBarWidget( opts ) {
 				)
 			]
 		},
-		$element: $( "<span style=\"width:auto;display:inline-block;float:left;margin:0\" title='" + i18n.t( 'topbar-set-all' ) + "'>" ),
 		$overlay: this.$overlay
 	} );
+	this.setAllDropDown.$element.addClass( 'rater-topBarWidget-setAllDropdown' );
+	this.setAllDropDown.$element[ 0 ].setAttribute( 'title', i18n.t( 'topbar-set-all' ) );
 
 	// Remove all banners button
 	this.removeAllButton = new OO.ui.ButtonWidget( {
@@ -107,27 +110,16 @@ function TopBarWidget( opts ) {
 		items: [
 			this.removeAllButton,
 			this.clearAllButton
-		],
-		$element: $( "<span style='flex:1 0 auto;'>" )
+		]
 	} );
+	this.menuButtons.$element.addClass( 'rater-topBarWidget-menuButtons' );
 	// Include the dropdown in the group
-	this.menuButtons.$element.prepend( this.setAllDropDown.$element );
+	this.menuButtons.$element[ 0 ].insertBefore( this.setAllDropDown.$element[ 0 ], this.menuButtons.$element[ 0 ].firstChild );
 
 	// Put everything into a layout
-	this.$element.addClass( 'rater-topBarWidget' )
-		.css( {
-			position: 'fixed',
-			width: '100%',
-			background: '#ccc',
-			display: 'flex',
-			'flex-wrap': 'wrap',
-			'justify-content': 'space-around',
-			margin: '-2px 0 0 0'
-		} )
-		.append(
-			$searchContainer,
-			this.menuButtons.$element
-		);
+	this.$element.addClass( 'rater-topBarWidget' );
+	this.$element[ 0 ].appendChild( searchContainer );
+	this.$element[ 0 ].appendChild( this.menuButtons.$element[ 0 ] );
 
 	/* --- Event handling --- */
 

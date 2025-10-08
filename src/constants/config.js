@@ -266,20 +266,22 @@ const loadExternalConfig = function () {
 	try {
 		if ( window && window.RATER_CONFIG && typeof window.RATER_CONFIG === 'object' ) {
 			deepMerge( config, window.RATER_CONFIG );
-			return $.Deferred().resolve().promise();
+			return Promise.resolve();
 		}
 		if ( window && window.RATER_CONFIG_URL && typeof window.RATER_CONFIG_URL === 'string' ) {
-			return $.get( window.RATER_CONFIG_URL ).then( ( data ) => {
-				try {
-					const obj = ( typeof data === 'string' ) ? JSON.parse( data ) : data;
-					if ( obj && typeof obj === 'object' ) {
-						deepMerge( config, obj );
-					}
-				} catch ( _ ) { /* ignore parse error */ }
-			} );
+			return fetch( window.RATER_CONFIG_URL )
+				.then( ( response ) => response.json() )
+				.then( ( data ) => {
+					try {
+						const obj = ( typeof data === 'string' ) ? JSON.parse( data ) : data;
+						if ( obj && typeof obj === 'object' ) {
+							deepMerge( config, obj );
+						}
+					} catch ( _ ) { /* ignore parse error */ }
+				} );
 		}
 	} catch ( _ ) { /* ignore */ }
-	return $.Deferred().resolve().promise();
+	return Promise.resolve();
 };
 
 export default config;

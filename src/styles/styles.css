@@ -113,3 +113,244 @@ html body.rater-mainWindow-open .oo-ui-dialog.oo-ui-window-active > div {
 html body.rater-mainWindow-open #mw-teleport-target {
 	inset: 0;
 }
+
+/* TopBarWidget styles */
+.rater-topBarWidget {
+	position: fixed;
+	width: 100%;
+	background: #ccc;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-around;
+	margin: -2px 0 0;
+}
+
+.rater-topBarWidget-searchBox {
+	display: inline-block;
+	margin: 0 -1px;
+	width: calc(100% - 55px);
+}
+
+.rater-topBarWidget-addButton {
+	float: right;
+	margin: 0;
+	transform: translateX(-12px);
+}
+
+.rater-topBarWidget-searchContainer {
+	display: inline-block;
+	flex-shrink: 1;
+	flex-grow: 100;
+	min-width: 250px;
+	width: 50%;
+}
+
+.rater-topBarWidget-setAllDropdown {
+	width: auto;
+	display: inline-block;
+	float: left;
+	margin: 0;
+}
+
+.rater-topBarWidget-menuButtons {
+	flex: 1 0 auto;
+}
+
+/* MainWindow styles */
+.rater-mainWindow-oresLabel {
+	float: right;
+	padding: 10px;
+	max-width: 50%;
+	text-align: center;
+}
+
+.rater-mainWindow-oresImg {
+	vertical-align: text-bottom;
+}
+
+.rater-mainWindow-pagetypeLabel {
+	float: right;
+	padding: 10px;
+	max-width: 33.33%;
+	text-align: center;
+}
+
+.rater-mainWindow-titleLink {
+	font-weight: bold;
+}
+
+.rater-mainWindow-titleVersion {
+	font-size: 90%;
+}
+
+.rater-mainWindow-errorStrong {
+	display: block;
+}
+
+.rater-mainWindow-errorMessage {
+	color: #777;
+}
+
+/* ParameterWidget styles */
+.rater-parameterWidget {
+	width: unset;
+	display: inline-block;
+	border-radius: 10px;
+	padding-left: 10px;
+	margin: 0 8px 8px 0;
+}
+
+.rater-parameterWidget-normal {
+	border: 1px solid #ddd;
+	background: #fffe;
+}
+
+.rater-parameterWidget-autofilled {
+	border: 1px dashed #36c;
+	background: #fffe;
+}
+
+.rater-parameterWidget-invalid {
+	border: 1px solid #ddd;
+	background: #fddd;
+}
+
+.rater-parameterWidget-editing {
+	border: 1px solid #ddd;
+	background: #fffe;
+}
+
+.rater-parameterWidget-checkbox {
+	margin: 0 0 0 5px;
+}
+
+.rater-parameterWidget-input {
+	margin-bottom: 0;
+}
+
+.rater-parameterWidget-input input {
+	padding-top: 0;
+	padding-bottom: 2px;
+	height: 24px;
+}
+
+.rater-parameterWidget-input span.oo-ui-labelElement-label {
+	line-height: normal;
+}
+
+.rater-parameterWidget-input a.oo-ui-buttonElement-button {
+	padding-top: 0;
+	height: 24px;
+	min-height: 0;
+}
+
+.rater-parameterWidget-confirmButton {
+	margin-right: 0;
+}
+
+.rater-parameterWidget-editButtonGroup {
+	font-size: 92%;
+}
+
+.rater-parameterWidget-editButtonGroup a span:first-child {
+	min-width: unset;
+	width: 16px;
+	margin-right: 0;
+}
+
+.rater-parameterWidget-editLayoutHelp {
+	margin: -10px 0 5px 10px;
+}
+
+.rater-parameterWidget-invalidIcon {
+	margin: 0 5px 0 -5px;
+	min-width: 16px;
+	width: 16px;
+}
+
+.rater-parameterWidget-fullLabel {
+	margin: 0;
+}
+
+.rater-parameterWidget-autofilledIcon {
+	margin: 0 -5px 0 5px;
+	min-width: 16px;
+	width: 16px;
+}
+
+.rater-parameterWidget-editButton {
+	margin-bottom: 0;
+}
+
+.rater-parameterWidget-editButton a {
+	border-radius: 0 10px 10px 0;
+	margin-left: 5px;
+}
+
+.rater-parameterWidget-editButton a span:first-child {
+	min-width: unset;
+	width: 16px;
+}
+
+.rater-parameterWidget-readLayout {
+	margin: 0;
+	width: unset;
+}
+
+/* ParameterListWidget styles */
+.rater-parameterListWidget-showMoreButton,
+.rater-parameterListWidget-addButton {
+	margin-bottom: 0;
+}
+
+/* BannerWidget styles */
+.rater-bannerWidget-removeButton,
+.rater-bannerWidget-clearButton {
+	width: 100%;
+}
+
+.rater-bannerWidget-removeButton a,
+.rater-bannerWidget-clearButton a {
+	width: 100%;
+}
+
+.rater-bannerWidget-titleButtonsGroup {
+	width: 100%;
+}
+
+.rater-bannerWidget-mainLabelPopup {
+	display: inline-block;
+	width: 48%;
+	margin-right: 0;
+	padding-right: 8px;
+}
+
+.rater-bannerWidget-mainLabelPopup a:first-child {
+	font-size: 110%;
+}
+
+.rater-bannerWidget-mainLabelPopup span.oo-ui-labelElement-label {
+	white-space: normal;
+}
+
+.rater-bannerWidget-labelMuted {
+	color: #777;
+}
+
+.rater-bannerWidget-addParameterName {
+	display: inline-block;
+	width: 40%;
+}
+
+.rater-bannerWidget-addParameterValue {
+	display: inline-block;
+	width: 40%;
+}
+
+.rater-bannerWidget-shellTemplate {
+	background: #eee;
+	border-radius: 10px;
+	padding: 0 10px 5px;
+	margin-bottom: 12px;
+	font-size: 92%;
+}

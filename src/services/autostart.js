@@ -36,7 +36,7 @@ const autoStart = function autoStart() {
 		}
 
 		// If talk page does not exist, can just autostart
-		if ( $( '#ca-talk.new' ).length ) {
+		if ( document.querySelector( '#ca-talk.new' ) ) {
 			return setupRater();
 		}
 
@@ -75,7 +75,7 @@ const autoStart = function autoStart() {
 					'[Rater] Error while checking whether to autostart.' +
 					( code === null || typeof code === 'undefined' ? '' : ' ' + makeErrorMsg( code, jqxhr ) )
 				);
-				return $.Deferred().reject();
+				throw new Error( 'Autostart check failed' );
 			} );
 	} );
 

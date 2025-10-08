@@ -29,18 +29,19 @@ function startApp() {
 				}
 				// Show notification when saved successfully
 				if ( result && result.success ) {
-					const $message = $( '<span>' ).append(
-						$( '<strong>' ).text( i18n.t( 'notify-saved' ) )
-					);
+					const span = document.createElement( 'span' );
+					const strong = document.createElement( 'strong' );
+					strong.textContent = i18n.t( 'notify-saved' );
+					span.appendChild( strong );
 					if ( result.upgradedStub ) {
-						$message.append(
-							$( '<br>' ),
-							// TODO: There should be a link that will edit the article for you
-							$( '<span>' ).text( i18n.t( 'notify-stub' ) )
-						);
+						const br = document.createElement( 'br' );
+						const stub = document.createElement( 'span' );
+						stub.textContent = i18n.t( 'notify-stub' );
+						span.appendChild( br );
+						span.appendChild( stub );
 					}
 					mw.notify(
-						$message,
+						span,
 						{ autoHide: true, autoHideSeconds: 'long', tag: 'Rater-saved' }
 					);
 				}

@@ -19,15 +19,17 @@ API.updateUserAgent = function ( version ) {
 /* ---------- API for ORES ---------------------------------------------------------------------- */
 API.getORES = function ( revisionID, wiki ) {
 	wiki = wiki || 'enwiki';
-	return $.get( 'https://ores.wikimedia.org/v3/scores/' + wiki + '?models=articlequality&revids=' + revisionID );
+	return fetch( 'https://ores.wikimedia.org/v3/scores/' + wiki + '?models=articlequality&revids=' + revisionID )
+		.then( ( response ) => response.json() );
 };
 
 /* ---------- Raw wikitext ---------------------------------------------------------------------- */
 API.getRaw = function ( page ) {
-	return $.get( 'https:' + mw.config.get( 'wgServer' ) + mw.util.getUrl( page, { action: 'raw' } ) )
+	return fetch( 'https:' + mw.config.get( 'wgServer' ) + mw.util.getUrl( page, { action: 'raw' } ) )
+		.then( ( response ) => response.text() )
 		.then( ( data ) => {
 			if ( !data ) {
-				return $.Deferred().reject( 'ok-but-empty' );
+				throw new Error( 'ok-but-empty' );
 			}
 			return data;
 		} );
@@ -41,7 +43,7 @@ API.getRaw = function ( page ) {
  */
 const getPage = function ( title, params ) {
 	return API.get(
-		$.extend(
+		Object.assign(
 			{
 				action: 'query',
 				format: 'json',
@@ -56,7 +58,7 @@ const getPage = function ( title, params ) {
 	).then( ( response ) => {
 		const page = Object.values( response.query.pages )[ 0 ];
 		const starttime = response.curtimestamp;
-		return $.Deferred().resolve( page, starttime );
+		return [ page, starttime ];
 	} );
 };
 
@@ -78,8 +80,8 @@ const processPage = function ( page, starttime, transform ) {
 		title: page.title,
 		content: page.revisions && page.revisions[ 0 ].slots.main[ '*' ]
 	};
-	return $.when( transform( simplifiedPage ) )
-		.then( ( editParams ) => $.extend( {
+	return Promise.resolve( transform( simplifiedPage ) )
+		.then( ( editParams ) => Object.assign( {
 			action: 'edit',
 			title: page.title,
 			// Protect against errors and conflicts
@@ -113,9 +115,9 @@ API.editWithRetry = function ( title, getParams, transform ) {
 	return getPage( title, getParams )
 		.then(
 		// Succes: process the page
-			( page, starttime ) => processPage( page, starttime, transform ),
+			( args ) => processPage( args[ 0 ], args[ 1 ], transform ),
 			// Failure: try again
-			() => getPage( title, getParams ).then( processPage, transform )
+			() => getPage( title, getParams ).then( ( args ) => processPage( args[ 0 ], args[ 1 ], transform ) )
 		)
 		.then( ( editParams ) => API.postWithToken( 'csrf', editParams )
 			.catch( ( errorCode ) => {

@@ -24,13 +24,27 @@ function MainWindow( windowConfig ) {
 OO.inheritClass( MainWindow, OO.ui.ProcessDialog );
 
 MainWindow.static.name = 'main';
-MainWindow.static.title = $( '<span>' ).css( { 'font-weight': 'normal' } ).append(
-	$( '<a>' ).css( { 'font-weight': 'bold' } ).attr( { href: mw.util.getUrl( 'WP:RATER' ), target: '_blank' } ).text( 'Rater' ),
-	' (',
-	$( '<a>' ).attr( { href: mw.util.getUrl( 'WT:RATER' ), target: '_blank' } ).text( 'talk' ),
-	') ',
-	$( '<span>' ).css( { 'font-size': '90%' } ).text( 'v' + config.script.version )
-);
+MainWindow.static.title = ( () => {
+	const titleSpan = document.createElement( 'span' );
+	const raterLink = document.createElement( 'a' );
+	raterLink.href = mw.util.getUrl( 'WP:RATER' );
+	raterLink.target = '_blank';
+	raterLink.className = 'rater-mainWindow-titleLink';
+	raterLink.textContent = 'Rater';
+	const talkLink = document.createElement( 'a' );
+	talkLink.href = mw.util.getUrl( 'WT:RATER' );
+	talkLink.target = '_blank';
+	talkLink.textContent = 'talk';
+	const versionSpan = document.createElement( 'span' );
+	versionSpan.className = 'rater-mainWindow-titleVersion';
+	versionSpan.textContent = 'v' + config.script.version;
+	titleSpan.appendChild( raterLink );
+	titleSpan.appendChild( document.createTextNode( ' (' ) );
+	titleSpan.appendChild( talkLink );
+	titleSpan.appendChild( document.createTextNode( ') ' ) );
+	titleSpan.appendChild( versionSpan );
+	return titleSpan;
+} )();
 MainWindow.static.size = 'large';
 // Function to create actions with optional localization
 function createActions( useI18n ) {
@@ -116,28 +130,33 @@ MainWindow.prototype.initialize = function () {
 	this.$head.css( { height: '73px' } ).append( this.topBar.$element );
 
 	/* --- FOOTER --- */
+	const oresLabelEl = document.createElement( 'span' );
+	oresLabelEl.className = 'rater-mainWindow-oresLabel';
+	const oresLink = document.createElement( 'a' );
+	oresLink.href = mw.util.getUrl( 'mw:ORES' );
+	oresLink.target = '_blank';
+	const oresImg = document.createElement( 'img' );
+	oresImg.src = '//upload.wikimedia.org/wikipedia/commons/thumb/5/51/Objective_Revision_Evaluation_Service_logo.svg/40px-Objective_Revision_Evaluation_Service_logo.svg.png';
+	oresImg.title = 'Machine predicted quality from ORES';
+	oresImg.alt = 'ORES logo';
+	oresImg.width = '20';
+	oresImg.height = '20';
+	oresImg.className = 'rater-mainWindow-oresImg';
+	oresLink.appendChild( oresImg );
+	const oresLabelContent = document.createElement( 'span' );
+	oresLabelContent.appendChild( oresLink );
+	oresLabelContent.appendChild( document.createTextNode( ' ' ) );
+	const oresPrediction = document.createElement( 'span' );
+	oresPrediction.className = 'oresPrediction';
+	oresLabelContent.appendChild( oresPrediction );
 	this.oresLabel = new OO.ui.LabelWidget( {
-		$element: $( "<span style='float:right; padding: 10px; max-width: 50%; text-align: center;'>" ),
-		label: $( '<span>' ).append(
-			$( '<a>' )
-				.attr( { href: mw.util.getUrl( 'mw:ORES' ), target: '_blank' } )
-				.append(
-					$( '<img>' )
-						.css( { 'vertical-align': 'text-bottom;' } )
-						.attr( {
-							src: '//upload.wikimedia.org/wikipedia/commons/thumb/5/51/Objective_Revision_Evaluation_Service_logo.svg/40px-Objective_Revision_Evaluation_Service_logo.svg.png',
-							title: 'Machine predicted quality from ORES',
-							alt: 'ORES logo',
-							width: '20px',
-							height: '20px'
-						} )
-				),
-			' ',
-			$( "<span class='oresPrediction'>" )
-		)
+		$element: oresLabelEl,
+		label: oresLabelContent
 	} ).toggle( false );
+	const pagetypeLabelEl = document.createElement( 'span' );
+	pagetypeLabelEl.className = 'rater-mainWindow-pagetypeLabel';
 	this.pagetypeLabel = new OO.ui.LabelWidget( {
-		$element: $( "<span style='float:right; padding: 10px; max-width: 33.33%; text-align: center;'>" )
+		$element: pagetypeLabelEl
 	} ).toggle( false );
 	this.$foot.prepend( this.oresLabel.$element, this.pagetypeLabel.$element );
 
@@ -166,7 +185,7 @@ MainWindow.prototype.initialize = function () {
 	this.parsedContentContainer = new OO.ui.FieldsetLayout( {
 		label: i18n.t( 'label-preview' )
 	} );
-	this.parsedContentWidget = new OO.ui.LabelWidget( { label: '', $element: $( '<div>' ) } );
+	this.parsedContentWidget = new OO.ui.LabelWidget( { label: '', $element: document.createElement( 'div' ) } );
 	this.parsedContentContainer.addItems( [
 		new OO.ui.FieldLayout(
 			this.parsedContentWidget,
@@ -301,8 +320,8 @@ MainWindow.prototype.makeDraggable = function () {
 		}
 	} ); // Remove optimisation if not dragging
 	$handleEl.on( pointer + 'down.raterMainWin', onDragStart );
-	$( 'body' ).on( pointer + 'move.raterMainWin', onDragMove );
-	$( 'body' ).on( pointer + 'up.raterMainWin', onDragEnd );
+	document.body.addEventListener( pointer + 'move', onDragMove );
+	document.body.addEventListener( pointer + 'up', onDragEnd );
 };
 
 // Override the getBodyHeight() method to specify a custom height
@@ -415,11 +434,15 @@ MainWindow.prototype.getSetupProcess = function ( data ) {
 				this.pagetypeLabel.setLabel( i18n.t( 'label-list-article' ) ).toggle( true );
 			} else if ( data.ores ) {
 				this.oresClass = data.ores.prediction;
-				this.oresLabel.toggle( true ).$element.find( '.oresPrediction' ).append(
-					i18n.t( 'label-prediction' ),
-					$( '<strong>' ).text( data.ores.prediction ),
-					'\u00A0(' + data.ores.probability + ')'
-				);
+				const predictionEl = this.oresLabel.$element[ 0 ].querySelector( '.oresPrediction' );
+				if ( predictionEl ) {
+					predictionEl.appendChild( document.createTextNode( i18n.t( 'label-prediction' ) ) );
+					const strong = document.createElement( 'strong' );
+					strong.textContent = data.ores.prediction;
+					predictionEl.appendChild( strong );
+					predictionEl.appendChild( document.createTextNode( '\u00A0(' + data.ores.probability + ')' ) );
+				}
+				this.oresLabel.toggle( true );
 			} else if ( this.pageInfo.isArticle ) {
 				this.pagetypeLabel.setLabel( i18n.t( 'label-article-page' ) ).toggle( true );
 			} else {
@@ -462,14 +485,18 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 					this.updateSize();
 				},
 				// Failure
-				( code, err ) => $.Deferred().reject(
-					new OO.ui.Error(
-						$( '<div>' ).append(
-							$( "<strong style='display:block;'>" ).text( i18n.t( 'error-save-prefs' ) ),
-							$( "<span style='color:#777'>" ).text( makeErrorMsg( code, err ) )
-						)
-					)
-				)
+				( code, err ) => {
+					const errorDiv = document.createElement( 'div' );
+					const strong = document.createElement( 'strong' );
+					strong.className = 'rater-mainWindow-errorStrong';
+					strong.textContent = i18n.t( 'error-save-prefs' );
+					const span = document.createElement( 'span' );
+					span.className = 'rater-mainWindow-errorMessage';
+					span.textContent = makeErrorMsg( code, err );
+					errorDiv.appendChild( strong );
+					errorDiv.appendChild( span );
+					throw new OO.ui.Error( errorDiv );
+				}
 			)
 		);
 
@@ -497,14 +524,18 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 					summary: this.makeEditSummary(),
 					watchlist: this.preferences.watchlist
 				} )
-			).catch( ( code, err ) => $.Deferred().reject(
-				new OO.ui.Error(
-					$( '<div>' ).append(
-						$( "<strong style='display:block;'>" ).text( i18n.t( 'error-could-not-save' ) ),
-						$( "<span style='color:#777'>" ).text( makeErrorMsg( code, err ) )
-					)
-				)
-			) )
+			).catch( ( code, err ) => {
+				const errorDiv = document.createElement( 'div' );
+				const strong = document.createElement( 'strong' );
+				strong.className = 'rater-mainWindow-errorStrong';
+				strong.textContent = i18n.t( 'error-could-not-save' );
+				const span = document.createElement( 'span' );
+				span.className = 'rater-mainWindow-errorMessage';
+				span.textContent = makeErrorMsg( code, err );
+				errorDiv.appendChild( strong );
+				errorDiv.appendChild( span );
+				throw new OO.ui.Error( errorDiv );
+			} )
 		).next( () => this.close( {
 			success: true,
 			upgradedStub: this.pageInfo.hasStubtag && this.isRatedAndNotStub()
@@ -519,7 +550,7 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 				label: i18n.t( 'label-edit-summary' )
 			} ).then( ( result ) => {
 				if ( !result || !result.parse || !result.parse.text || !result.parse.text[ '*' ] ) {
-					return $.Deferred().reject( 'Empty result' );
+					throw new Error( 'Empty result' );
 				}
 				const previewHtmlSnippet = new OO.ui.HtmlSnippet( result.parse.text[ '*' ] );
 
@@ -530,14 +561,18 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 				this.topBar.setDisabled( true );
 				this.updateSize();
 			} )
-				.catch( ( code, err ) => $.Deferred().reject(
-					new OO.ui.Error(
-						$( '<div>' ).append(
-							$( "<strong style='display:block;'>" ).text( i18n.t( 'error-could-not-show-changes' ) ),
-							$( "<span style='color:#777'>" ).text( makeErrorMsg( code, err ) )
-						)
-					)
-				) )
+				.catch( ( code, err ) => {
+					const errorDiv = document.createElement( 'div' );
+					const strong = document.createElement( 'strong' );
+					strong.className = 'rater-mainWindow-errorStrong';
+					strong.textContent = i18n.t( 'error-could-not-show-changes' );
+					const span = document.createElement( 'span' );
+					span.className = 'rater-mainWindow-errorMessage';
+					span.textContent = makeErrorMsg( code, err );
+					errorDiv.appendChild( strong );
+					errorDiv.appendChild( span );
+					throw new OO.ui.Error( errorDiv );
+				} )
 		);
 
 	} else if ( action === 'changes' ) {
@@ -551,9 +586,9 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 					if ( !result || !result.compare || !result.compare[ '*' ] ) {
 						// Ensure the core MediaWiki message is available before showing it
 						const loadDiffEmptyMessage = () => {
-							// If already loaded, resolve immediately
+						// If already loaded, resolve immediately
 							if ( typeof mw !== 'undefined' && mw.message && mw.message( 'diff-empty' ).exists() ) {
-								return $.Deferred().resolve( mw.msg( 'diff-empty' ) ).promise();
+								return Promise.resolve( mw.msg( 'diff-empty' ) );
 							}
 							// Prefer mw.Api().loadMessages if available
 							if ( typeof mw !== 'undefined' && mw.Api && typeof ( new mw.Api() ).loadMessages === 'function' ) {
@@ -573,12 +608,14 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 								} );
 							}
 							// Last resort
-							return $.Deferred().resolve( 'No difference' ).promise();
+							return Promise.resolve( 'No difference' );
 						};
 
 						return loadDiffEmptyMessage().then( ( msg ) => {
-							const $empty = $( '<div>' ).addClass( 'diff-empty' ).text( msg );
-							this.parsedContentWidget.setLabel( $empty );
+							const emptyDiv = document.createElement( 'div' );
+							emptyDiv.className = 'diff-empty';
+							emptyDiv.textContent = msg;
+							this.parsedContentWidget.setLabel( emptyDiv );
 							this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
 							this.actions.setMode( 'diff' );
 							this.contentArea.setItem( this.parsedContentLayout );
@@ -586,37 +623,61 @@ MainWindow.prototype.getActionProcess = function ( action ) {
 							this.updateSize();
 						} );
 					}
-					const $diff = $( '<table>' ).addClass( 'diff' ).css( 'width', '100%' ).append(
-						$( '<tr>' ).append(
-							$( '<th>' ).attr( { colspan: '2', scope: 'col' } ).css( 'width', '50%' ).text( i18n.t( 'label-latest-revision' ) ),
-							$( '<th>' ).attr( { colspan: '2', scope: 'col' } ).css( 'width', '50%' ).text( i18n.t( 'label-new-text' ) )
-						),
-						result.compare[ '*' ],
-						$( '<tfoot>' ).append(
-							$( '<tr>' ).append(
-								$( "<td colspan='4'>" ).append(
-									$( '<strong>' ).text( i18n.t( 'label-edit-summary' ) + ' ' ),
-									this.makeEditSummary()
-								)
-							)
-						)
-					);
+					const diffTable = document.createElement( 'table' );
+					diffTable.className = 'diff';
+					diffTable.style.width = '100%';
 
-					this.parsedContentWidget.setLabel( $diff );
+					const headerRow = document.createElement( 'tr' );
+					const th1 = document.createElement( 'th' );
+					th1.setAttribute( 'colspan', '2' );
+					th1.setAttribute( 'scope', 'col' );
+					th1.style.width = '50%';
+					th1.textContent = i18n.t( 'label-latest-revision' );
+					const th2 = document.createElement( 'th' );
+					th2.setAttribute( 'colspan', '2' );
+					th2.setAttribute( 'scope', 'col' );
+					th2.style.width = '50%';
+					th2.textContent = i18n.t( 'label-new-text' );
+					headerRow.appendChild( th1 );
+					headerRow.appendChild( th2 );
+					diffTable.appendChild( headerRow );
+
+					// Add diff content
+					const tempDiv = document.createElement( 'div' );
+					tempDiv.innerHTML = result.compare[ '*' ];
+					Array.from( tempDiv.children ).forEach( ( child ) => diffTable.appendChild( child ) );
+
+					const tfoot = document.createElement( 'tfoot' );
+					const footerRow = document.createElement( 'tr' );
+					const footerCell = document.createElement( 'td' );
+					footerCell.setAttribute( 'colspan', '4' );
+					const strong = document.createElement( 'strong' );
+					strong.textContent = i18n.t( 'label-edit-summary' ) + ' ';
+					footerCell.appendChild( strong );
+					footerCell.appendChild( document.createTextNode( this.makeEditSummary() ) );
+					footerRow.appendChild( footerCell );
+					tfoot.appendChild( footerRow );
+					diffTable.appendChild( tfoot );
+
+					this.parsedContentWidget.setLabel( diffTable );
 					this.parsedContentContainer.setLabel( i18n.t( 'label-changes' ) );
 					this.actions.setMode( 'diff' );
 					this.contentArea.setItem( this.parsedContentLayout );
 					this.topBar.setDisabled( true );
 					this.updateSize();
 				} )
-				.catch( ( code, err ) => $.Deferred().reject(
-					new OO.ui.Error(
-						$( '<div>' ).append(
-							$( "<strong style='display:block;'>" ).text( i18n.t( 'error-could-not-show-changes' ) ),
-							$( "<span style='color:#777'>" ).text( makeErrorMsg( code, err ) )
-						)
-					)
-				) )
+				.catch( ( code, err ) => {
+					const errorDiv = document.createElement( 'div' );
+					const strong = document.createElement( 'strong' );
+					strong.className = 'rater-mainWindow-errorStrong';
+					strong.textContent = i18n.t( 'error-could-not-show-changes' );
+					const span = document.createElement( 'span' );
+					span.className = 'rater-mainWindow-errorMessage';
+					span.textContent = makeErrorMsg( code, err );
+					errorDiv.appendChild( strong );
+					errorDiv.appendChild( span );
+					throw new OO.ui.Error( errorDiv );
+				} )
 		);
 
 	} else if ( action === 'back' ) {
@@ -650,12 +711,11 @@ MainWindow.prototype.getTeardownProcess = function ( data ) {
 
 			this.$element.find( '.oo-ui-window-frame' ).css( 'transform', '' );
 			this.$element.find( '.oo-ui-processDialog-location' ).off( '.raterMainWin' );
-			$( 'body' ).off( '.raterMainWin' );
 		} );
 };
 
 MainWindow.prototype.setPreferences = function ( prefs ) {
-	this.preferences = $.extend( {}, config.defaultPrefs, prefs );
+	this.preferences = Object.assign( {}, config.defaultPrefs, prefs );
 	// Applies preferences to existing items in the window:
 	this.bannerList.setPreferences( this.preferences );
 };
@@ -699,11 +759,11 @@ MainWindow.prototype.onSearchSelect = function ( data ) {
 		confirmText = new OO.ui.HtmlSnippet(
 			'{{' + mw.html.escape( name ) + '}} is not a recognised WikiProject banner.<br/>Do you want to continue?'
 		);
-	} else if ( name === 'WikiProject Disambiguation' && $( '#ca-talk.new' ).length !== 0 && this.bannerList.items.length === 0 ) {
+	} else if ( name === 'WikiProject Disambiguation' && document.querySelector( '#ca-talk.new' ) && this.bannerList.items.length === 0 ) {
 
 		confirmText = "New talk pages shouldn't be created if they will only contain the \{\{WikiProject Disambiguation\}\} banner. Continue?";
 	}
-	$.when( confirmText ? OO.ui.confirm( confirmText ) : true )
+	Promise.resolve( confirmText ? OO.ui.confirm( confirmText ) : true )
 		.then( ( confirmed ) => {
 			if ( !confirmed ) {
 				return;
